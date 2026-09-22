@@ -1,0 +1,24 @@
+.welcome-page {
+    --font-sans: 'LINESeedSansTH', sans-serif;
+}
+
+html,
+body,
+button,
+input,
+select,
+textarea {
+    font-family: 'LINESeedSansTH', sans-serif;
+}
+
+.welcome-font {
+    font-family: 'LINESeedSansTH', sans-serif;
+}
+
+.welcome-blend-hard-light {
+    mix-blend-mode: hard-light;
+}
+
+.welcome-blend-plus-darker {
+    mix-blend-mode: plus-darker;
+}

@@ -1,0 +1,32 @@
+[x-cloak] {
+    display: none !important;
+}
+
+body {
+    font-family: 'LINESeedSansTH', sans-serif;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.progress-width-0\% {
+    width: 0%;
+}
+
+.progress-width-33-33\% {
+    width: 33.33%;
+}
+
+.progress-width-66-66\% {
+    width: 66.66%;
+}
+
+.progress-width-100\% {
+    width: 100%;
+}
