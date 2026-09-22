@@ -48,14 +48,12 @@
     </x-slot>
 
     <div class="data-page-stack">
-        <!-- Progress Stepper Timeline -->
+        {{-- ไทม์ไลน์แสดงกระบวนการทำงานทุกขั้นตอน --}}
         <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
-
             <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-8 flex items-center gap-2">
                 <i class="fa-solid fa-timeline text-blue-600"></i>
                 <span>ขั้นตอนการดำเนินงาน (Status Timeline)</span>
             </h3>
-
             <div class="relative">
                 {{-- ตัวแสดงขั้นตอนการทำงาน --}}
                 <div class="hidden md:block absolute top-5 left-[12%] right-[12%] h-1 bg-slate-200 -z-0">
@@ -69,7 +67,7 @@
                             $progressWidth = '33.33%';
                         }
                     @endphp
-                    <div class="h-full bg-blue-600 transition-all duration-500 progress-width-{{ str_replace('.', '-', $progressWidth) }}">
+                    <div class="h-full bg-green-600 transition-all duration-500 progress-width-{{ str_replace('.', '-', $progressWidth) }}">
                     </div>
                 </div>
 
@@ -90,9 +88,11 @@
                     <!-- Step 2: รอเจ้าหน้าที่ -->
                     <div class="flex md:flex-col items-center gap-4 md:text-center">
                         <div
-                            class="w-10 h-10 rounded-full {{ $ticket->status === 'pending' ? 'bg-blue-600 text-white shadow-lg ring-4 ring-blue-100' : (in_array($ticket->status, ['in_progress', 'completed']) ? 'bg-emerald-600 text-white shadow-md ring-4 ring-white' : 'bg-slate-200 text-slate-500') }} flex items-center justify-center font-bold text-sm shrink-0">
+                            class="w-10 h-10 rounded-full {{ $ticket->status === 'pending' ? 'border-4 border-emerald-600 bg-white text-emerald-600 shadow-md' : (in_array($ticket->status, ['in_progress', 'completed']) ? 'bg-emerald-600 text-white shadow-md ring-4 ring-white' : 'bg-slate-200 text-slate-500') }} flex items-center justify-center font-bold text-sm shrink-0">
                             @if (in_array($ticket->status, ['in_progress', 'completed']))
                                 <i class="fa-solid fa-check"></i>
+                            @elseif ($ticket->status === 'pending')
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
                             @else
                                 2
                             @endif
@@ -108,9 +108,11 @@
                     <!-- Step 3: กำลังดำเนินการ -->
                     <div class="flex md:flex-col items-center gap-4 md:text-center">
                         <div
-                            class="w-10 h-10 rounded-full {{ $ticket->status === 'in_progress' ? 'bg-blue-600 text-white shadow-lg ring-4 ring-blue-100' : ($ticket->status === 'completed' ? 'bg-emerald-600 text-white shadow-md ring-4 ring-white' : 'bg-slate-200 text-slate-500') }} flex items-center justify-center font-bold text-sm shrink-0">
+                            class="w-10 h-10 rounded-full {{ $ticket->status === 'in_progress' ? 'border-4 border-emerald-600 bg-white text-emerald-600 shadow-md' : ($ticket->status === 'completed' ? 'bg-emerald-600 text-white shadow-md ring-4 ring-white' : 'bg-slate-200 text-slate-500') }} flex items-center justify-center font-bold text-sm shrink-0">
                             @if ($ticket->status === 'completed')
                                 <i class="fa-solid fa-check"></i>
+                            @elseif ($ticket->status === 'in_progress')
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
                             @else
                                 3
                             @endif
@@ -126,9 +128,9 @@
                     <!-- Step 4: เสร็จสิ้น -->
                     <div class="flex md:flex-col items-center gap-4 md:text-center">
                         <div
-                            class="w-10 h-10 rounded-full {{ $ticket->status === 'completed' ? 'bg-blue-600 text-white shadow-lg ring-4 ring-blue-100' : 'bg-slate-200 text-slate-500' }} flex items-center justify-center font-bold text-sm shrink-0">
+                            class="w-10 h-10 rounded-full {{ $ticket->status === 'completed' ? 'border-4 border-emerald-600 bg-white text-emerald-600 shadow-md' : 'bg-slate-200 text-slate-500' }} flex items-center justify-center font-bold text-sm shrink-0">
                             @if ($ticket->status === 'completed')
-                                <i class="fa-solid fa-flag-checkered"></i>
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
                             @else
                                 4
                             @endif

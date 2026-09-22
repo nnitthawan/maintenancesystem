@@ -345,10 +345,6 @@
     transition: background-color 150ms ease;
 }
 
-.data-table tbody tr:hover {
-    background: rgb(248 250 252 / 0.8);
-}
-
 .data-table tbody tr:last-child {
     border-bottom: 0;
 }

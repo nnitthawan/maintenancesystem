@@ -91,7 +91,7 @@
                     <a href="{{ route('tickets.index', ['status' => 'completed']) }}">
                         <div class="dashboard-stat-content">
                             <div>
-                                <p class="text-xs font-medium text-emerald-600 uppercase tracking-wider">แก้ไขเสร็จสิ้น
+                                <p class="text-xs font-medium text-emerald-600 uppercase tracking-wider">เสร็จสิ้น
                                 </p>
                                 <h3 class="text-3xl font-bold text-emerald-600 mt-1">
                                     {{ number_format($stats['completed']) }}

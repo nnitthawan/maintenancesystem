@@ -145,10 +145,18 @@ class TicketController extends Controller
         $ticket->save();
 
         if ($oldStatus !== $ticket->status) {
+            $statusLabel = match ($ticket->status) {
+                'pending' => 'รอรับเรื่อง',
+                'in_progress' => 'กำลังดำเนินการ',
+                'completed' => 'เสร็จสิ้น',
+                'cancelled' => 'ยกเลิก',
+                default => $ticket->status,
+            };
+
             Notification::create([
                 'user_id' => $ticket->user_id,
                 'ticket_id' => $ticket->id,
-                'message' => 'รายการ ' . $ticket->ticket_no . ' เปลี่ยนสถานะเป็น ' . $ticket->status,
+                'message' => 'รายการ ' . $ticket->ticket_no . ' เปลี่ยนสถานะเป็น ' . $statusLabel,
             ]);
         }
 

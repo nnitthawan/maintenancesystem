@@ -77,7 +77,7 @@
                 </a>
                 <a href="{{ route('tickets.index', array_merge(request()->query(), ['status' => 'completed'])) }}" 
                    class="status-tab {{ request('status') === 'completed' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700' }}">
-                    <i class="fa-solid fa-check-circle me-1"></i> แก้ไขเสร็จสิ้น
+                    <i class="fa-solid fa-check-circle me-1"></i> เสร็จสิ้น
                 </a>
                 <a href="{{ route('tickets.index', array_merge(request()->query(), ['status' => 'cancelled'])) }}" 
                    class="status-tab {{ request('status') === 'cancelled' ? 'bg-slate-600 text-white' : 'bg-slate-100 text-slate-600' }}">
@@ -148,6 +148,7 @@
                                         </span>
                                     @else
                                         <span class="status-pill status-cancelled">
+                                            <span class="status-dot"></span>
                                             ยกเลิก
                                         </span>
                                     @endif

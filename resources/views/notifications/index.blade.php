@@ -33,7 +33,14 @@
                         <i class="fa-solid fa-bell"></i>
                 </div>
                 <div class="notification-content">
-                    <p class="notification-message">{{ $notification->message }}</p>
+                    @php
+                        $notificationMessage = str_replace(
+                            ['เปลี่ยนสถานะเป็น pending', 'เปลี่ยนสถานะเป็น in_progress', 'เปลี่ยนสถานะเป็น completed', 'เปลี่ยนสถานะเป็น cancelled'],
+                            ['เปลี่ยนสถานะเป็น รอรับเรื่อง', 'เปลี่ยนสถานะเป็น กำลังดำเนินการ', 'เปลี่ยนสถานะเป็น เสร็จสิ้น', 'เปลี่ยนสถานะเป็น ยกเลิก'],
+                            $notification->message,
+                        );
+                    @endphp
+                    <p class="notification-message">{{ $notificationMessage }}</p>
                     <p class="notification-time">{{ $notification->created_at->diffForHumans() }}</p>
                 </div>
                     <form method="POST" action="{{ route('notifications.read', $notification) }}">

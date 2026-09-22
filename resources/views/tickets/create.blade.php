@@ -161,6 +161,7 @@
         </form>
     </div>
 
+    {{-- รูปภาพที่เลือก --}}
     <!-- JS script for image preview -->
     <script>
         const maxImageCount = 5;
