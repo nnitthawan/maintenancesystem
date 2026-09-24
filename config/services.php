@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'line' => [
+    'token' => env('LINE_MESSAGING_API_TOKEN'),
+    'admin_id' => env('IT_ADMIN_LINE_ID'),
+],
+
 ];

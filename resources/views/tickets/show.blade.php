@@ -278,19 +278,19 @@
                     </div>
                 @endif
 
-                <!-- Status Management Panel for Admin / Technician -->
+                <!-- ตัวเปลี่ยนสถานะการซ่อมแซม -->
                 @if (Auth::user()->role === 'admin')
                     <div
                         class="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl shadow-xl p-6 text-white space-y-4 border border-slate-800">
                         <h3 class="font-bold text-base flex items-center gap-2 text-blue-300">
                             <i class="fa-solid fa-user-shield"></i>
-                            <span>การจัดการสำหรับช่าง / แอดมิน</span>
+                            <span>การจัดการสำหรับเจ้าหน้าที่ / แอดมิน</span>
                         </h3>
                         <p class="text-xs text-slate-300">คุณสามารถเปลี่ยนสถานะงานซ่อมนี้เพื่อแจ้งความคืบหน้าแก่ผู้ใช้
                         </p>
 
                         <form action="{{ route('tickets.update-status', $ticket->id) }}" method="POST"
-                            class="space-y-4">
+                            class="space-y-4" data-status-update>
                             @csrf
                             @method('PATCH')
 
@@ -335,6 +335,32 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const cancelForm = document.querySelector('[data-cancel-ticket]');
+            const statusForm = document.querySelector('[data-status-update]');
+
+            if (statusForm) {
+                statusForm.addEventListener('submit', function (event) {
+                    event.preventDefault();
+
+                    const form = this;
+                    const statusSelect = form.querySelector('select[name="status"]');
+                    const selectedStatus = statusSelect.options[statusSelect.selectedIndex].text.trim();
+
+                    Swal.fire({
+                        icon: 'question',
+                        title: 'ยืนยันการเปลี่ยนสถานะ',
+                        text: `ต้องการเปลี่ยนสถานะเป็น "${selectedStatus}" หรือไม่?`,
+                        showCancelButton: true,
+                        confirmButtonText: 'ยืนยันการเปลี่ยนสถานะ',
+                        cancelButtonText: 'ยกเลิก',
+                        confirmButtonColor: '#2563eb',
+                        cancelButtonColor: '#94a3b8'
+                    }).then(function (result) {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            }
 
             if (!cancelForm) {
                 return;

@@ -1,16 +1,18 @@
 <?php
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\TicketController;
+
+use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\CategoriesController;
 use App\Http\Controllers\Admin\DepartmentController;
-use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Auth\TwoFactorController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TicketController;
 use App\Models\Category;
 use App\Models\Ticket;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use App\Services\LineService;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -18,7 +20,7 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     $user = Auth::user();
-    
+
     $query = Ticket::with(['reporter.department', 'category']);
     if ($user->role !== 'admin') {
         $query->where('user_id', $user->id);
@@ -63,12 +65,34 @@ Route::get('/dashboard', function () {
         },
     ])->get();
 
-    return view('dashboard', compact('tickets', 'stats', 'categorySummary', 'statusSummary', 'categories'));
+    $view = $user->role === 'admin' ? 'admin.dashboard' : 'user.dashboard';
+
+    return view($view, compact('tickets', 'stats', 'categorySummary', 'statusSummary', 'categories'));
 })->middleware(['auth'])->name('dashboard');
 // })->middleware(['auth', 'two-factor.setup'])->name('dashboard');
 
 // Route::middleware(['auth', 'two-factor.setup'])->group(function () {
 Route::middleware(['auth'])->group(function () {
+    Route::get('/test-line', function (LineService $lineService) {
+        $adminId = config('services.line.admin_id');
+        $token = config('services.line.token');
+
+        if (empty($token)) {
+            return "Error: ไม่พบ LINE_MESSAGING_API_TOKEN ใน .env";
+        }
+
+        if (empty($adminId)) {
+            return "Error: ไม่พบ IT_ADMIN_LINE_ID ใน .env";
+        }
+
+        $success = $lineService->sendPush($adminId, "ทดสอบการยิง LINE จากโปรเจกต์ Laravel บน Localhost สำเร็จ!");
+
+        if ($success) {
+            return "ส่งข้อความเข้า LINE เรียบร้อยแล้ว! เช็คข้อความในมือถือได้เลยครับ";
+        }
+
+        return "ส่งไม่ผ่าน! โปรดตรวจสอบข้อความ Error ที่ไฟล์ storage/logs/laravel.log";
+    });
     // Tickets management
     Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::get('/tickets/create', [TicketController::class, 'create'])->name('tickets.create');

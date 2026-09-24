@@ -43,11 +43,12 @@
 
         <div class="data-card">
             <div class="data-card-header">
-                <h2 class="section-title text-base font-bold text-slate-800"><i
-                        class="fa-solid fa-users text-blue-600"></i>บัญชีผู้ใช้</h2>
+                <h2 class="section-title text-base font-bold text-slate-800">
+                    {{-- <i class="fa-solid fa-users text-blue-600"></i> --}}
+                    บัญชีผู้ใช้</h2>
                 <div class="data-card-actions">
                     <button type="button" class="secondary-action" data-toggle-import>
-                        <i class="fa-solid fa-upload"></i>นำเข้าข้อมูล
+                        <i class="fa-solid fa-download"></i></i>นำเข้าข้อมูล
                     </button>
                     <a href="{{ route('admin.users.template') }}" class="secondary-action">
                         <i class="fa-solid fa-download"></i>Template

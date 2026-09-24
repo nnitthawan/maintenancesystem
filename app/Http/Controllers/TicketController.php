@@ -7,11 +7,20 @@ use App\Models\Notification;
 use App\Models\Ticket;
 use App\Models\TicketImage;
 use App\Models\User;
+use App\Services\LineService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class TicketController extends Controller
 {
+    protected LineService $lineService;
+
+    // Inject LineService เข้ามาผ่าน Constructor
+    public function __construct(LineService $lineService)
+    {
+        $this->lineService = $lineService;
+    }
+
     /**
      * Display a listing of tickets.
      */
@@ -40,9 +49,9 @@ class TicketController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('ticket_no', 'like', "%{$search}%")
-                  ->orWhere('asset_no', 'like', "%{$search}%")
-                  ->orWhere('location', 'like', "%{$search}%")
-                  ->orWhere('symptom', 'like', "%{$search}%");
+                    ->orWhere('asset_no', 'like', "%{$search}%")
+                    ->orWhere('location', 'like', "%{$search}%")
+                    ->orWhere('symptom', 'like', "%{$search}%");
             });
         }
 
@@ -52,18 +61,15 @@ class TicketController extends Controller
         return view('tickets.index', compact('tickets', 'categories'));
     }
 
-    /**
-     * Show the form for creating a new ticket.
-     */
+    // สร้างการแจ้งซ่อมใหม่
     public function create()
     {
         $categories = Category::all();
+
         return view('tickets.create', compact('categories'));
     }
 
-    /**
-     * Store a newly created ticket in storage.
-     */
+    // ตัวตรวจสอบข้อมูลที่กรอกว่าครบถ้วนตามเงื่อนไขไหม
     public function store(Request $request)
     {
         $request->validate([
@@ -82,10 +88,10 @@ class TicketController extends Controller
             'images.*.max' => 'ขนาดรูปภาพต้องไม่เกิน 5 MB',
         ]);
 
-        // Generate Ticket No (e.g. TK-20260911-0001)
+        //ตัวสร้างรหัสการซ่อม Ticket No (e.g. TK-20260911-0001)
         $todayStr = date('Ymd');
         $countToday = Ticket::whereDate('created_at', now()->toDateString())->count() + 1;
-        $ticketNo = 'TK-' . $todayStr . '-' . str_pad($countToday, 4, '0', STR_PAD_LEFT);
+        $ticketNo = 'TK-'.$todayStr.'-'.str_pad($countToday, 4, '0', STR_PAD_LEFT);
 
         $ticket = Ticket::create([
             'ticket_no' => $ticketNo,
@@ -97,7 +103,7 @@ class TicketController extends Controller
             'status' => 'pending',
         ]);
 
-        // Handle uploaded images
+        // ส่วนการอัปโหลด images
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $file) {
                 if ($file->isValid()) {
@@ -110,16 +116,33 @@ class TicketController extends Controller
             }
         }
 
+        // 1. บันทึก Notification ในระบบเดิม
         User::all()
             ->filter(fn (User $user) => $user->isAdmin())
             ->each(fn (User $admin) => Notification::create([
                 'user_id' => $admin->id,
                 'ticket_id' => $ticket->id,
-                'message' => 'มีรายการแจ้งซ่อมใหม่ ' . $ticket->ticket_no . ' จาก ' . Auth::user()->name,
+                'message' => 'มีรายการแจ้งซ่อมใหม่ '.$ticket->ticket_no.' จาก '.Auth::user()->name,
             ]));
 
+        // 2. ส่ง LINE แจ้งเตือนแอดมิน/กลุ่มไลน์ไอที
+        $adminLineId = config('services.line.admin_id');
+        if (! empty($adminLineId)) {
+            $reporterName = Auth::user()->name ?? 'ไม่ระบุชื่อ';
+            $msgToAdmin = "🚨 **มีรายการแจ้งซ่อมใหม่**\n"
+                        ."รหัส: {$ticket->ticket_no}\n"
+                        ."ผู้แจ้ง: {$reporterName}\n"
+                        ."สถานที่: {$ticket->location}\n"
+                        .'รหัสอุปกรณ์: '.($ticket->asset_no ?? '-')."\n"
+                        ."อาการเสีย: {$ticket->symptom}\n"
+                        ."รูปภาพแนบ: ".($ticket->images->isNotEmpty() ? 'มี' : 'ไม่มี')."\n"
+                        ."ลิงก์จัดการที่ระบบ: ".route('tickets.show', $ticket->id);
+
+            $this->lineService->sendPush($adminLineId, $msgToAdmin);
+        }
+
         return redirect()->route('tickets.show', $ticket->id)
-            ->with('success', 'ส่งข้อมูลแจ้งซ่อมเรียบร้อยแล้ว รหัสรายการ: ' . $ticketNo);
+            ->with('success', 'ส่งข้อมูลแจ้งซ่อมเรียบร้อยแล้ว รหัสรายการ: '.$ticketNo);
     }
 
     public function show($id)
@@ -140,6 +163,14 @@ class TicketController extends Controller
         ]);
 
         $ticket = Ticket::findOrFail($id);
+
+        if ($ticket->status === 'completed' && $request->status !== 'completed') {
+            return redirect()->back()->with(
+                'error',
+                'รายการนี้ซ่อมเสร็จสิ้นแล้ว ไม่สามารถเปลี่ยนสถานะอื่นได้'
+            );
+        }
+
         $oldStatus = $ticket->status;
         $ticket->status = $request->status;
         $ticket->save();
@@ -153,11 +184,33 @@ class TicketController extends Controller
                 default => $ticket->status,
             };
 
+            // 1. บันทึก Notification ในระบบเดิม
             Notification::create([
                 'user_id' => $ticket->user_id,
                 'ticket_id' => $ticket->id,
-                'message' => 'รายการ ' . $ticket->ticket_no . ' เปลี่ยนสถานะเป็น ' . $statusLabel,
+                'message' => 'รายการ '.$ticket->ticket_no.' เปลี่ยนสถานะเป็น '.$statusLabel,
             ]);
+
+            // 2. ส่ง LINE แจ้งเตือนผู้แจ้งซ่อม (ถ้ามี line_user_id ในตาราง User) กำลังพัฒนา
+            $reporter = $ticket->reporter; 
+            if ($reporter && ! empty($reporter->line_user_id)) {
+                $emoji = match ($ticket->status) {
+                    'pending' => '📌',
+                    'in_progress' => '⚙️',
+                    'completed' => '✅',
+                    'cancelled' => '❌',
+                    default => 'ℹ️',
+                };
+
+                $msgToUser = "{$emoji} **อัปเดตสถานะการแจ้งซ่อม**\n"
+                           ."รหัสรายการ: {$ticket->ticket_no}\n"
+                           ."สถานที่: {$ticket->location}\n"
+                           ."อาการเสีย: {$ticket->symptom}\n"
+                           ."-------------------\n"
+                           ."สถานะล่าสุด: **{$statusLabel}**";
+
+                $this->lineService->sendPush($reporter->line_user_id, $msgToUser);
+            }
         }
 
         return redirect()->back()->with('success', 'อัปเดตสถานะการแจ้งซ่อมสำเร็จ');
@@ -166,7 +219,6 @@ class TicketController extends Controller
     public function cancel(Request $request, $id)
     {
         $ticket = Ticket::findOrFail($id);
-
         abort_unless($ticket->user_id === Auth::id(), 403);
 
         if ($ticket->status !== 'pending') {
@@ -180,8 +232,18 @@ class TicketController extends Controller
             ->each(fn (User $admin) => Notification::create([
                 'user_id' => $admin->id,
                 'ticket_id' => $ticket->id,
-                'message' => 'ผู้แจ้งยกเลิกรายการแจ้งซ่อม ' . $ticket->ticket_no,
+                'message' => 'ผู้แจ้งยกเลิกรายการแจ้งซ่อม '.$ticket->ticket_no,
             ]));
+
+        // 📲 (เสริม) ส่ง LINE บอกแอดมินเมื่อผู้แจ้งกดยกเลิก
+        $adminLineId = config('services.line.admin_id');
+        if (! empty($adminLineId)) {
+            $msgCancel = "❌ **ผู้แจ้งยกเลิกรายการแจ้งซ่อม**\n"
+                       ."รหัสรายการ: {$ticket->ticket_no}\n"
+                       .'ผู้แจ้ง: '.(Auth::user()->name ?? 'ไม่ระบุชื่อ');
+
+            $this->lineService->sendPush($adminLineId, $msgCancel);
+        }
 
         return redirect()->route('tickets.show', $ticket->id)
             ->with('success', 'ยกเลิกรายการแจ้งซ่อมเรียบร้อยแล้ว');

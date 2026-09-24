@@ -2,7 +2,7 @@
 
 @php
     $pageTitle = $title ?? match (true) {
-        request()->routeIs('dashboard') => 'แดชบอร์ด',
+        request()->routeIs('dashboard') => Auth::user()?->isAdmin() ? 'แดชบอร์ด' : 'หน้าหลัก',
         request()->routeIs('tickets.index') => 'รายการแจ้งซ่อม',
         request()->routeIs('tickets.create') => 'แจ้งซ่อมใหม่',
         request()->routeIs('tickets.show') => 'รายละเอียดการแจ้งซ่อม',
