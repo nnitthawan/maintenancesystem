@@ -426,8 +426,8 @@
 
 .user-filter-form .filter-input,
 .user-filter-form .filter-select,
-.user-filter-form .filter-actions > .primary-action,
-.user-filter-form .filter-actions > .secondary-action {
+.user-filter-form .filter-actions>.primary-action,
+.user-filter-form .filter-actions>.secondary-action {
     height: 2.5rem;
     box-sizing: border-box;
 }
@@ -664,12 +664,7 @@
     box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
 }
 
-.form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    margin-top: 1.5rem;
-}
+
 
 .secondary-action {
     background: transparent;
@@ -687,9 +682,46 @@
     gap: 1.5rem;
 }
 
+/* หน้าสร้างการซ่อม */
 .ticket-form-card {
     padding: 2rem;
 }
+
+.sectionCreateTicket {
+    margin-top: 1rem;
+}
+
+.btSubmitCreatePage,
+.btCancelCreatePage {
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.5rem;
+    color: #fff;
+    font-weight: 500;
+    font-size: 0.875rem;
+    align-items: center;
+    gap: 1rem;
+}
+
+.btSubmitCreatePage {
+    background: #059669;
+    display: flex;
+    gap: 0.4rem;
+    justify-content: center;
+}
+
+.btCancelCreatePage {
+    background: #64748b;
+}
+
+.form-actions {
+    display: grid;
+    grid-template-columns: auto auto;
+    text-align: center;
+    /* justify-content: flex-end; */
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
 
 .ticket-reporter-card {
     display: flex;
@@ -705,6 +737,7 @@
 .ticket-form-actions {
     border-top: 1px solid #f1f5f9;
     padding-top: 1rem;
+    width: 100%;
 }
 
 .page-title-group {
@@ -966,30 +999,30 @@
     width: 100% !important;
 }
 
-.pagination-wrap nav > div:last-child {
+.pagination-wrap nav>div:last-child {
     display: flex !important;
     align-items: center;
     justify-content: center !important;
 }
 
-.pagination-wrap nav > div:last-child > div:first-child {
+.pagination-wrap nav>div:last-child>div:first-child {
     display: none !important;
 }
 
-.pagination-wrap nav > div:last-child > div:last-child,
-.pagination-wrap nav > div:last-child > div:last-child > span {
+.pagination-wrap nav>div:last-child>div:last-child,
+.pagination-wrap nav>div:last-child>div:last-child>span {
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
 }
 
-.pagination-wrap nav > div:last-child > div:last-child > span {
+.pagination-wrap nav>div:last-child>div:last-child>span {
     gap: 0.35rem;
     box-shadow: none !important;
 }
 
-.pagination-wrap nav > div:last-child > div:last-child > span > a,
-.pagination-wrap nav > div:last-child > div:last-child > span > span > span {
+.pagination-wrap nav>div:last-child>div:last-child>span>a,
+.pagination-wrap nav>div:last-child>div:last-child>span>span>span {
     display: inline-flex !important;
     min-width: 2.5rem !important;
     height: 2.5rem !important;
@@ -1006,35 +1039,35 @@
     transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
 }
 
-.pagination-wrap nav > div:last-child > div:last-child > span > span {
+.pagination-wrap nav>div:last-child>div:last-child>span>span {
     display: inline-flex;
 }
 
-.pagination-wrap nav > div:last-child > div:last-child > span > a:hover {
+.pagination-wrap nav>div:last-child>div:last-child>span>a:hover {
     border-color: #93c5fd;
     background: #eff6ff;
     color: #2563eb;
 }
 
-.pagination-wrap nav > div:last-child > div:last-child > span > span[aria-current="page"] > span {
+.pagination-wrap nav>div:last-child>div:last-child>span>span[aria-current="page"]>span {
     border-color: #3b82f6;
     background: #3b82f6;
     color: #fff;
     box-shadow: 0 4px 10px rgb(59 130 246 / 0.2);
 }
 
-.pagination-wrap nav > div:last-child > div:last-child > span > span[aria-disabled="true"] > span {
+.pagination-wrap nav>div:last-child>div:last-child>span>span[aria-disabled="true"]>span {
     background: #f8fafc;
     color: #cbd5e1;
 }
 
-.pagination-wrap nav > div:last-child > div:last-child > span > span[aria-disabled="true"] > span[aria-hidden="true"] {
+.pagination-wrap nav>div:last-child>div:last-child>span>span[aria-disabled="true"]>span[aria-hidden="true"] {
     border: 0;
     background: transparent;
     color: #94a3b8;
 }
 
-.dashboard-chartDetail-grid{
+.dashboard-chartDetail-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.25rem;
@@ -1049,14 +1082,14 @@
         min-width: 0;
     }
 
-    .pagination-wrap nav > div:first-child {
+    .pagination-wrap nav>div:first-child {
         display: flex;
         justify-content: center;
         gap: 0.35rem;
     }
 
-    .pagination-wrap nav > div:first-child a,
-    .pagination-wrap nav > div:first-child span {
+    .pagination-wrap nav>div:first-child a,
+    .pagination-wrap nav>div:first-child span {
         min-width: 2.5rem;
         height: 2.5rem;
         padding: 0 0.65rem;

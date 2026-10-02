@@ -140,7 +140,7 @@
                 <a href="{{ route('tickets.create') }}"
                     class="public-navigation-link mobile-navigation-link is-primary">
                     <i class="fa-solid fa-plus"></i>
-                    <span class="public-navigation-label">แจ้งซ่อม</span>
+                    <span class="public-navigation-label">แจ้งซ่อมครุภัณฑ์</span>
                 </a>
             </div>
 

@@ -88,7 +88,7 @@ class TicketController extends Controller
             'images.*.max' => 'ขนาดรูปภาพต้องไม่เกิน 5 MB',
         ]);
 
-        //ตัวสร้างรหัสการซ่อม Ticket No (e.g. TK-20260911-0001)
+        // ตัวสร้างรหัสการซ่อม Ticket No (e.g. TK-20260911-0001)
         $todayStr = date('Ymd');
         $countToday = Ticket::whereDate('created_at', now()->toDateString())->count() + 1;
         $ticketNo = 'TK-'.$todayStr.'-'.str_pad($countToday, 4, '0', STR_PAD_LEFT);
@@ -128,15 +128,18 @@ class TicketController extends Controller
         // 2. ส่ง LINE แจ้งเตือนแอดมิน/กลุ่มไลน์ไอที
         $adminLineId = config('services.line.admin_id');
         if (! empty($adminLineId)) {
-            $reporterName = Auth::user()->name ?? 'ไม่ระบุชื่อ';
+            $ticket->load('reporter.department');
+            $reporterName = $ticket->reporter->name ?? 'ไม่ระบุชื่อ';
+            $reporterDepartment = $ticket->reporter->department->department_name ?? 'ไม่ระบุหน่วยงาน';
             $msgToAdmin = "🚨 **มีรายการแจ้งซ่อมใหม่**\n"
                         ."รหัส: {$ticket->ticket_no}\n"
                         ."ผู้แจ้ง: {$reporterName}\n"
+                        ."หน่วยงาน: {$reporterDepartment}\n"
                         ."สถานที่: {$ticket->location}\n"
                         .'รหัสอุปกรณ์: '.($ticket->asset_no ?? '-')."\n"
                         ."อาการเสีย: {$ticket->symptom}\n"
-                        ."รูปภาพแนบ: ".($ticket->images->isNotEmpty() ? 'มี' : 'ไม่มี')."\n"
-                        ."ลิงก์จัดการที่ระบบ: ".route('tickets.show', $ticket->id);
+                        .'รูปภาพแนบ: '.($ticket->images->isNotEmpty() ? 'มี' : 'ไม่มี')."\n"
+                        .'ลิงก์จัดการที่ระบบ: '.route('tickets.show', $ticket->id);
 
             $this->lineService->sendPush($adminLineId, $msgToAdmin);
         }
@@ -192,7 +195,7 @@ class TicketController extends Controller
             ]);
 
             // 2. ส่ง LINE แจ้งเตือนผู้แจ้งซ่อม (ถ้ามี line_user_id ในตาราง User) กำลังพัฒนา
-            $reporter = $ticket->reporter; 
+            $reporter = $ticket->reporter;
             if ($reporter && ! empty($reporter->line_user_id)) {
                 $emoji = match ($ticket->status) {
                     'pending' => '📌',

@@ -147,7 +147,7 @@
                     <label for="current_password">รหัสผ่านเดิม</label>
                     <div class="profile-password-input">
                         <input id="current_password" name="current_password" type="password"
-                            autocomplete="current-password" required />
+                            autocomplete="current-password" placeholder="กรอกรหัสผ่านเดิม" required />
                         <button type="button" class="profile-password-toggle" data-password-target="current_password" aria-label="แสดงรหัสผ่าน">
                             <i class="fa-solid fa-eye-slash"></i>
                         </button>
@@ -159,7 +159,7 @@
                     <label for="password">รหัสผ่านใหม่</label>
                     <div class="profile-password-input">
                         <input id="password" name="password" type="password"
-                            autocomplete="new-password" required />
+                            autocomplete="new-password" placeholder="กรอกรหัสผ่านใหม่" required />
                         <button type="button" class="profile-password-toggle" data-password-target="password" aria-label="แสดงรหัสผ่าน">
                             <i class="fa-solid fa-eye-slash"></i>
                         </button>
@@ -171,7 +171,7 @@
                     <label for="password_confirmation">ยืนยันรหัสผ่านใหม่</label>
                     <div class="profile-password-input">
                         <input id="password_confirmation" name="password_confirmation" type="password"
-                            autocomplete="new-password" required />
+                            autocomplete="new-password" placeholder="ยืนยันรหัสผ่านใหม่" required />
                         <button type="button" class="profile-password-toggle" data-password-target="password_confirmation" aria-label="แสดงรหัสผ่าน">
                             <i class="fa-solid fa-eye-slash"></i>
                         </button>
