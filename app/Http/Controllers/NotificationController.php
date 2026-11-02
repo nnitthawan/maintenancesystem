@@ -34,6 +34,15 @@ class NotificationController extends Controller
             ->where('is_read', false)
             ->update(['is_read' => true]);
 
-        return redirect()->route('notifications.index');
+        return redirect()->back();
+    }
+
+    public function destroy(Notification $notification): RedirectResponse
+    {
+        abort_unless($notification->user_id === Auth::id(), 403);
+
+        $notification->delete();
+
+        return redirect()->back()->with('success', 'ลบการแจ้งเตือนแล้ว');
     }
 }

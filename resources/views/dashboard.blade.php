@@ -267,121 +267,6 @@
                 </div>
             </div>
 
-            <!-- Recent Tickets Table Card -->
-            {{-- <div class="data-card">
-            <div class="data-card-header">
-                <div>
-                    <h3 class="section-title">
-                        <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
-                        <span>{{ Auth::user()->isAdmin() ? 'รายการแจ้งซ่อมล่าสุด' : 'งานแจ้งซ่อมล่าสุดของฉัน' }}</span>
-                    </h3>
-                    <p class="text-xs text-slate-500">
-                        {{ Auth::user()->isAdmin() ? 'แสดงรายการแจ้งซ่อม 5 รายการล่าสุดในระบบ' : 'แสดงงานแจ้งซ่อม 5 รายการล่าสุดของคุณ' }}
-                    </p>
-                </div>
-                <a href="{{ route('tickets.index') }}"
-                    class="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                    <span>ดูทั้งหมด</span>
-                    <i class="fa-solid fa-arrow-right"></i>
-                </a>
-            </div>
-
-            <div class="data-table-wrap">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th class="px-5 py-3">เลขที่ใบแจ้งซ่อม</th>
-                            @if (Auth::user()->isAdmin())
-                                <th class="px-5 py-3">ผู้แจ้ง / แผนก</th>
-                            @endif
-                            <th class="px-5 py-3">หมวดหมู่</th>
-                            <th class="px-5 py-3">สถานที่ / ปัญหา</th>
-                            <th class="px-5 py-3">สถานะ</th>
-                            <th class="px-5 py-3">วันที่แจ้ง</th>
-                            <th class="px-5 py-3 text-right">การจัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($tickets as $ticket)
-                            <tr>
-                                <td class="px-5 py-4 font-semibold text-blue-600">
-                                    {{ $ticket->ticket_no }}
-                                </td>
-                                @if (Auth::user()->isAdmin())
-                                    <td class="px-5 py-4">
-                                        <div class="font-medium text-slate-800">
-                                            {{ $ticket->reporter->name ?? 'ไม่ระบุ' }}</div>
-                                        <div class="text-xs text-slate-400">
-                                            {{ $ticket->reporter->department->department_name ?? '-' }}</div>
-                                    </td>
-                                @endif
-                                <td class="px-5 py-4">
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                                        {{ $ticket->category->category_name ?? 'ทั่วไป' }}
-                                    </span>
-                                </td>
-                                <td class="px-5 py-4 max-w-xs">
-                                    <div class="font-medium text-slate-800 truncate"><i
-                                            class="fa-solid fa-location-dot text-rose-500 text-xs me-1"></i>{{ $ticket->location }}
-                                    </div>
-                                    <div class="text-xs text-slate-500 truncate mt-0.5">{{ $ticket->symptom }}</div>
-                                </td>
-                                <td class="px-5 py-4">
-                                    @if ($ticket->status === 'pending')
-                                        <span class="status-pill status-pending">
-                                            <span class="status-dot"></span>
-                                            รอรับเรื่อง
-                                        </span>
-                                    @elseif($ticket->status === 'in_progress')
-                                        <span class="status-pill status-progress">
-                                            <span class="status-dot"></span>
-                                            กำลังดำเนินการ
-                                        </span>
-                                    @elseif($ticket->status === 'completed')
-                                        <span class="status-pill status-completed">
-                                            <span class="status-dot"></span>
-                                            เสร็จสิ้น
-                                        </span>
-                                    @else
-                                        <span class="status-pill status-cancelled">
-                                            <span class="status-dot"></span>
-                                            ยกเลิก
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="px-5 py-4 text-xs text-slate-500">
-                                    {{ $ticket->created_at ? $ticket->created_at->format('d/m/Y H:i') : '-' }}
-                                </td>
-                                <td class="px-5 py-4 text-right">
-                                    <a href="{{ route('tickets.show', $ticket->id) }}" class="secondary-action">
-                                        <span>รายละเอียด</span>
-                                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="{{ Auth::user()->isAdmin() ? 7 : 6 }}"
-                                    class="px-5 py-12 text-center text-slate-400">
-                                    <div class="empty-state-icon">
-                                        <i class="fa-solid fa-inbox"></i>
-                                    </div>
-                                    <p class="font-medium text-slate-600">ยังไม่มีรายการแจ้งซ่อมในระบบ</p>
-                                    <p class="text-xs text-slate-400 mt-1">
-                                        คลิกปุ่มด้านล่างเพื่อเริ่มแจ้งซ่อมเป็นรายการแรก</p>
-                                    <a href="{{ route('tickets.create') }}"
-                                        class="inline-block mt-4 px-4 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-500">
-                                        + แจ้งซ่อมใหม่
-                                    </a>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div> --}}
-
             <div class="dashboard-chartDetail-grid">
                 <div class="data-card">
                     <div class="data-card-header">
@@ -408,7 +293,7 @@
                                         <td>{{ $loop->iteration }}</td>
                                         <td class="font-semibold text-slate-800">{{ $category->category_name }}</td>
                                         <td class="text-right font-semibold text-blue-600">
-                                            {{ number_format($category->ticket_count) }} รายการ
+                                            {{ number_format($category->tickets_count) }} รายการ
                                         </td>
                                     </tr>
                                 @empty
@@ -422,6 +307,7 @@
                         </table>
                     </div>
                 </div>
+                
                 <div class="data-card">
                     <div class="data-card-header">
                         <div>

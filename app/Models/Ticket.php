@@ -13,10 +13,14 @@ class Ticket extends Model
     protected $fillable = [
         'ticket_no',
         'user_id',
+        'assigned_staff_id',
         'category_id',
         'asset_no',
         'location',
         'symptom',
+        'repair_method',
+        'external_repair_location',
+        'external_repair_returned_at',
         'status',
     ];
 
@@ -24,6 +28,11 @@ class Ticket extends Model
     public function reporter()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function assignedStaff()
+    {
+        return $this->belongsTo(User::class, 'assigned_staff_id');
     }
 
     // หมวดหมู่การซ่อม
@@ -42,6 +51,16 @@ class Ticket extends Model
     public function notifications()
     {
         return $this->hasMany(Notification::class, 'ticket_id');
+    }
+
+    public function getRepairMethodLabelAttribute(): string
+    {
+        return match ($this->repair_method) {
+            'in_house' => 'ซ่อมเองได้',
+            'external' => 'ส่งซ่อมภายนอก',
+            'unrepairable' => 'ซ่อมไม่ได้',
+            default => 'ยังไม่ระบุ',
+        };
     }
 
     public function getStatusBadgeAttribute(): string

@@ -1,0 +1,68 @@
+.inputCreatePage{
+    width: 100%;
+    border-radius: 5px;
+    border: 1px solid #e5e7eb;
+    padding: 0.5rem;
+    font-size: 16PX;
+    line-height: 2rem;
+}
+
+.inputImageCreatePage{
+    border-radius: 5px;
+    border: 2px dashed #e5e7eb;
+    cursor: pointer;
+    padding: 1.5rem;
+    text-align: center;
+}
+.inputImageCreatePage:hover{
+    border-color: #3b82f6;
+    background-color: rgba(241, 245, 249, 0.6);
+}
+
+.empty-state-Group{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.card-list-countsNumber{
+    border-radius: 5px;
+    padding: 1.25rem;
+    background-color: #f9fafb;
+    border-left: 4px solid #000000;
+}
+
+.card-list-countsNumber.StatusPending {
+    background-color: #fcf7e6;
+    border-left: 4px solid #facc15;
+    color: #b45309;
+}
+.card-list-countsNumber.StatusInProgress {
+
+    background-color: #f0f7ff;
+    border-left: 4px solid #3b82f6;
+    color: #1d4ed8;
+}
+.card-list-countsNumber.StatusCompleted {
+    background-color: #effff7;
+    border-left: 4px solid #10b981;
+    color: #065f46;
+}
+
+.card-list-countsNumber.StatusCancelled {
+    background-color: #fcf0f0;
+    border-left: 4px solid #ef4444;
+    color: #b91c1c;
+}
+
+.card-list-countsNumber .text-countNumber {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.text-SumNumber{
+    font-weight: 700;
+    font-size: 36px;
+}

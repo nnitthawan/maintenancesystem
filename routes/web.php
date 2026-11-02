@@ -21,6 +21,10 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     $user = Auth::user();
 
+    if ($user->role === 'staff') {
+        return redirect()->route('tickets.index');
+    }
+
     $query = Ticket::with(['reporter.department', 'category']);
     if ($user->role !== 'admin') {
         $query->where('user_id', $user->id);
@@ -98,12 +102,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/tickets/create', [TicketController::class, 'create'])->name('tickets.create');
     Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
     Route::get('/tickets/{id}', [TicketController::class, 'show'])->name('tickets.show');
+    Route::patch('/tickets/{id}/claim', [TicketController::class, 'claim'])->name('tickets.claim');
     Route::patch('/tickets/{id}/cancel', [TicketController::class, 'cancel'])->name('tickets.cancel');
+    Route::patch('/tickets/{id}/status', [TicketController::class, 'updateStatus'])->name('tickets.update-status');
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 
     // User Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -119,7 +126,7 @@ Route::middleware(['auth'])->group(function () {
 
         Route::resource('admin/departments', DepartmentController::class)->names('admin.departments');
 
-        Route::patch('/tickets/{id}/status', [TicketController::class, 'updateStatus'])->name('tickets.update-status');
+        Route::patch('/tickets/{id}/assign', [TicketController::class, 'assignStaff'])->name('tickets.assign-staff');
 
         Route::get('admin/reports', [ReportController::class, 'index'])->name('admin.reports.index');
         Route::get('admin/users/export-tickets', [AdminUserController::class, 'exportTickets'])->name('admin.users.export-tickets');

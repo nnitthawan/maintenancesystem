@@ -5,8 +5,9 @@
                 <h1 class="page-title">จัดการบัญชีผู้ใช้</h1>
                 <p class="page-description">ค้นหา แก้ไข เพิ่ม และจัดการสิทธิ์ผู้ใช้งานในระบบ</p>
             </div>
-            <a href="{{ route('admin.users.create') }}" class="page-action"><i
-                    class="fa-solid fa-user-plus"></i>เพิ่มผู้ใช้งาน</a>
+            <button type="button" class="page-action" data-toggle-create>
+                <i class="fa-solid fa-user-plus"></i>เพิ่มผู้ใช้งาน
+            </button>
         </div>
     </x-slot>
 
@@ -42,7 +43,7 @@
         </div>
 
         <div class="data-card">
-            <div class="data-card-header">
+            <div class="data-cardListUsers-header">
                 <h2 class="section-title text-base font-bold text-slate-800">
                     {{-- <i class="fa-solid fa-users text-blue-600"></i> --}}
                     บัญชีผู้ใช้</h2>
@@ -79,8 +80,9 @@
                                         class="status-pill status-{{ $user->isAdmin() ? 'progress' : 'completed' }}"><span
                                             class="status-dot"></span>{{ $user->roleRelation->name ?? ($user->isAdmin() ? 'admin' : 'user') }}</span>
                                 </td>
-                                <td class="table-actions text-start"><a href="{{ route('admin.users.edit', $user) }}"
-                                        class="table-link mr-3"><i class="fa-solid fa-pen-to-square mr-1"></i>แก้ไข</a>
+                                <td class="table-actions text-start"><button type="button"
+                                        class="table-link mr-3" data-open-edit-user="{{ $user->id }}">
+                                        <i class="fa-solid fa-pen-to-square mr-1"></i>แก้ไข</button>
                                     <form method="POST" action="{{ route('admin.users.destroy', $user) }}"
                                         class="inline" data-delete-user="{{ $user->name }}">@csrf
                                         @method('DELETE')<button type="submit" class="table-danger"
@@ -99,6 +101,22 @@
                 <div class="pagination-wrap">{{ $users->links() }}</div>
             @endif
         </div>
+    </div>
+
+    @foreach ($users as $user)
+        <div class="modal-backdrop {{ (string) old('_edit_user_id') === (string) $user->id ? 'is-open' : '' }}"
+            data-edit-user-modal="{{ $user->id }}"
+            onclick="if (event.target === this) closeEditUserModal(this)" role="presentation">
+            @include('admin.users.edit-modal', [
+                'user' => $user,
+                'restoreOldInput' => (string) old('_edit_user_id') === (string) $user->id,
+            ])
+        </div>
+    @endforeach
+
+    <div class="modal-backdrop {{ old('_create_user_form') || request()->boolean('create') ? 'is-open' : '' }}"
+        data-create-modal onclick="if (event.target === this) closeCreateModal()" role="presentation">
+        @include('admin.users.create')
     </div>
 
     <div id="importModal" class="modal-backdrop" data-import-modal
@@ -130,19 +148,153 @@
     <script>
         const importToggle = document.querySelector('[data-toggle-import]');
         const importModal = document.querySelector('[data-import-modal]');
+        const createToggle = document.querySelector('[data-toggle-create]');
+        const createModal = document.querySelector('[data-create-modal]');
+        const editUserModals = document.querySelectorAll('[data-edit-user-modal]');
 
         importToggle.addEventListener('click', function() {
             importModal.classList.add('is-open');
+            updateModalScrollLock();
             document.getElementById('excel_file').focus();
         });
 
         function closeImportModal() {
             importModal.classList.remove('is-open');
             document.getElementById('excel_file').value = '';
+            updateModalScrollLock();
         }
+
+        createToggle.addEventListener('click', openCreateModal);
+
+        function openCreateModal() {
+            createModal.classList.add('is-open');
+            updateModalScrollLock();
+            document.getElementById('create-name').focus();
+        }
+
+        function closeCreateModal() {
+            createModal.classList.remove('is-open');
+            updateModalScrollLock();
+            createToggle.focus();
+        }
+
+        function updateModalScrollLock() {
+            document.body.classList.toggle(
+                'overflow-hidden',
+                createModal.classList.contains('is-open') ||
+                    importModal.classList.contains('is-open') ||
+                    Array.from(editUserModals).some(function(modal) {
+                        return modal.classList.contains('is-open');
+                    })
+            );
+        }
+
+        document.querySelectorAll('[data-open-edit-user]').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const modal = document.querySelector(
+                    '[data-edit-user-modal="' + button.dataset.openEditUser + '"]'
+                );
+                modal.classList.add('is-open');
+                updateModalScrollLock();
+                modal.querySelector('input[name="name"]').focus();
+            });
+        });
+
+        function closeEditUserModal(modal) {
+            modal.classList.remove('is-open');
+            updateModalScrollLock();
+            document.querySelector('[data-open-edit-user="' + modal.dataset.editUserModal + '"]').focus();
+        }
+
+        document.querySelectorAll('[data-close-edit-user]').forEach(function(button) {
+            button.addEventListener('click', function() {
+                closeEditUserModal(button.closest('[data-edit-user-modal]'));
+            });
+        });
 
         document.querySelectorAll('[data-close-import]').forEach(function(button) {
             button.addEventListener('click', closeImportModal);
+        });
+
+        document.querySelectorAll('[data-close-create]').forEach(function(button) {
+            button.addEventListener('click', closeCreateModal);
+        });
+
+        document.querySelectorAll('[data-password-toggle]').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const password = document.getElementById(button.dataset.passwordToggle);
+                const isVisible = password.type === 'text';
+
+                password.type = isVisible ? 'password' : 'text';
+                button.setAttribute('aria-pressed', String(!isVisible));
+                button.setAttribute('aria-label', isVisible ? 'แสดงรหัสผ่าน' : 'ซ่อนรหัสผ่าน');
+                button.querySelector('i').classList.toggle('fa-eye', !isVisible);
+                button.querySelector('i').classList.toggle('fa-eye-slash', isVisible);
+            });
+        });
+
+        document.querySelectorAll('[data-edit-user-form]').forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                const confirmMessage = 'ต้องการบันทึกข้อมูลบัญชีนี้หรือไม่?';
+                if (typeof window.Swal === 'undefined') {
+                    if (window.confirm(confirmMessage)) form.submit();
+                    return;
+                }
+
+                Swal.fire({
+                    icon: 'question',
+                    title: 'ยืนยันการแก้ไข',
+                    text: confirmMessage,
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#2563eb',
+                    cancelButtonColor: '#94a3b8'
+                }).then(function(result) {
+                    if (result.isConfirmed) form.submit();
+                });
+            });
+        });
+
+        const createUserForm = document.querySelector('[data-create-user-form]');
+        const createPassword = document.getElementById('create-password');
+        const createPasswordConfirmation = document.getElementById('create-password-confirmation');
+        const passwordMismatchMessage = document.querySelector('[data-password-mismatch]');
+
+        function validateCreatePassword() {
+            const mismatch = createPasswordConfirmation.value !== '' &&
+                createPassword.value !== createPasswordConfirmation.value;
+
+            createPasswordConfirmation.setCustomValidity(mismatch ? 'รหัสผ่านยืนยันไม่ตรงกัน' : '');
+            passwordMismatchMessage.classList.toggle('hidden', !mismatch);
+        }
+
+        createPassword.addEventListener('input', validateCreatePassword);
+        createPasswordConfirmation.addEventListener('input', validateCreatePassword);
+
+        createUserForm.addEventListener('submit', function(event) {
+            validateCreatePassword();
+            if (!createUserForm.checkValidity()) {
+                event.preventDefault();
+                createUserForm.reportValidity();
+            }
+        });
+
+        if (createModal.classList.contains('is-open')) {
+            updateModalScrollLock();
+            document.getElementById('create-name').focus();
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                if (createModal.classList.contains('is-open')) closeCreateModal();
+                if (importModal.classList.contains('is-open')) closeImportModal();
+                editUserModals.forEach(function(modal) {
+                    if (modal.classList.contains('is-open')) closeEditUserModal(modal);
+                });
+            }
         });
 
         document.querySelectorAll('[data-delete-user]').forEach(function(form) {

@@ -67,6 +67,11 @@ class User extends Authenticatable
         return $this->hasMany(Ticket::class);
     }
 
+    public function assignedTickets()
+    {
+        return $this->hasMany(Ticket::class, 'assigned_staff_id');
+    }
+
     public function notifications()
     {
         return $this->hasMany(Notification::class);

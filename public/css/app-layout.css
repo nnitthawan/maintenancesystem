@@ -4,6 +4,10 @@
 
 body {
     font-family: 'LINESeedSansTH', sans-serif;
+    background-image: linear-gradient(rgba(209, 221, 235, 1.5), rgba(209, 221, 235, 0.6)), url('../images/backgroud_maintenanceSystem.jfif');
+    background-size: cover;
+    background-position: center;
+    min-height: 100vh;
 }
 
 .sidebar-scroll::-webkit-scrollbar {

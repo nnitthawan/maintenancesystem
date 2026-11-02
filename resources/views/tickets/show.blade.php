@@ -49,9 +49,8 @@
 
     <div class="data-page-stack">
         {{-- ไทม์ไลน์แสดงกระบวนการทำงานทุกขั้นตอน --}}
-        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+        <div class="card-Progress">
             <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-8 flex items-center gap-2">
-                <i class="fa-solid fa-timeline text-blue-600"></i>
                 <span>ขั้นตอนการดำเนินงาน (Status Timeline)</span>
             </h3>
             <div class="relative">
@@ -150,7 +149,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- ซ้าย ข้อมูลรายละเอียด -->
             <div class="lg:col-span-2 space-y-6">
-                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-6">
+                <div class="card-Progress ">
                     <h3 class="font-bold text-lg text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
                         <i class="fa-solid fa-circle-info text-blue-600"></i>
                         <span>รายละเอียดการแจ้งซ่อม</span>
@@ -180,13 +179,39 @@
                                 {{ $ticket->location }}
                             </span>
                         </div>
+
+                        <div class="sm:col-span-2 p-3 bg-slate-50 rounded-xl">
+                            <span class="text-xs text-slate-400 font-medium block uppercase">แนวทางการซ่อม</span>
+                            <span class="font-semibold text-slate-800 text-base">
+                                {{ $ticket->repair_method_label }}
+                            </span>
+                        </div>
+
+                        @if ($ticket->repair_method === 'external')
+                            <div class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="p-3 bg-amber-50 rounded-xl">
+                                    <span class="text-xs text-amber-700 font-medium block uppercase">ส่งซ่อมที่</span>
+                                    <span class="font-semibold text-slate-800 text-base">
+                                        {{ $ticket->external_repair_location ?: 'ยังไม่ระบุ' }}
+                                    </span>
+                                </div>
+                                <div class="p-3 bg-emerald-50 rounded-xl">
+                                    <span class="text-xs text-emerald-700 font-medium block uppercase">วันที่ได้รับของคืน</span>
+                                    <span class="font-semibold text-slate-800 text-base">
+                                        {{ $ticket->external_repair_returned_at
+                                            ? \Illuminate\Support\Carbon::parse($ticket->external_repair_returned_at)->format('d/m/Y')
+                                            : 'ยังไม่ได้รับของคืน' }}
+                                    </span>
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
                     <div>
                         <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">อาการเสีย /
                             ปัญหาที่พบ</h4>
                         <div
-                            class="p-4 bg-slate-50 border border-slate-200/60 rounded-xl text-slate-800 text-sm leading-relaxed whitespace-pre-line">
+                            class="p-4 bg-slate-50 border border-slate-200/60 rounded-xl text-slate-800 text-sm leading-relaxed ">
                             {{ $ticket->symptom }}
                         </div>
                     </div>
@@ -226,7 +251,7 @@
 
             <div class="space-y-6">
                 <!-- Reporter Info Card -->
-                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
+                <div class="card-Progress">
                     <h3
                         class="font-bold text-base text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
                         <i class="fa-solid fa-user-circle text-blue-600"></i>
@@ -259,7 +284,7 @@
                 </div>
 
                 @if (!Auth::user()->isAdmin() && $ticket->user_id === Auth::id() && $ticket->status === 'pending')
-                    <div class="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-sm">
+                    <div class="card-Progress-cancel">
                         <h3 class="flex items-center gap-2 font-bold text-rose-800">
                             <i class="fa-solid fa-ban"></i>
                             ยกเลิกรายการแจ้งซ่อม
@@ -270,7 +295,7 @@
                         <form method="POST" action="{{ route('tickets.cancel', $ticket->id) }}" class="mt-4" data-cancel-ticket>
                             @csrf
                             @method('PATCH')
-                            <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700">
+                            <button type="submit" class="inline-flex w-full items-center justify-center gap-2 bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700">
                                 <i class="fa-solid fa-trash-can"></i>
                                 ยกเลิกรายการนี้
                             </button>
@@ -279,12 +304,13 @@
                 @endif
 
                 <!-- ตัวเปลี่ยนสถานะการซ่อมแซม -->
-                @if (Auth::user()->role === 'admin')
+                @if (Auth::user()->isAdmin() || (Auth::user()->role === 'staff' && $ticket->assigned_staff_id === Auth::id() && in_array($ticket->status, ['pending', 'in_progress'])))
                     <div
-                        class="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl shadow-xl p-6 text-white space-y-4 border border-slate-800">
+                        class="card-Progress-Status">
+                        {{-- class="bg-gradient-to-br from-slate-900 to-indigo-950 shadow-xl p-6 text-white space-y-4 border border-slate-800"> --}}
                         <h3 class="font-bold text-base flex items-center gap-2 text-blue-300">
                             <i class="fa-solid fa-user-shield"></i>
-                            <span>การจัดการสำหรับเจ้าหน้าที่ / แอดมิน</span>
+                            <span>{{ Auth::user()->isAdmin() ? 'การจัดการสำหรับแอดมิน' : 'จัดการงานที่ได้รับมอบหมาย' }}</span>
                         </h3>
                         <p class="text-xs text-slate-300">คุณสามารถเปลี่ยนสถานะงานซ่อมนี้เพื่อแจ้งความคืบหน้าแก่ผู้ใช้
                         </p>
@@ -302,26 +328,117 @@
                                 </label>
                                 <select id="status" name="status"
                                     class="w-full rounded-xl bg-slate-800 border-slate-700 text-white text-sm focus:border-blue-500 focus:ring-blue-500 py-2.5 px-3">
-                                    <option value="pending" {{ $ticket->status === 'pending' ? 'selected' : '' }}>
-                                        รอรับเรื่อง (Pending)
-                                    </option>
-                                    <option value="in_progress"
-                                        {{ $ticket->status === 'in_progress' ? 'selected' : '' }}>
-                                        กำลังดำเนินการซ่อม (In Progress)
-                                    </option>
-                                    <option value="completed" {{ $ticket->status === 'completed' ? 'selected' : '' }}>
-                                        ซ่อมเสร็จสิ้น (Completed)
-                                    </option>
-                                    <option value="cancelled" {{ $ticket->status === 'cancelled' ? 'selected' : '' }}>
-                                        ยกเลิกรายการ (Cancelled)
-                                    </option>
+                                    @if (Auth::user()->isAdmin())
+                                        <option value="pending" {{ $ticket->status === 'pending' ? 'selected' : '' }}>
+                                            รอรับเรื่อง (Pending)
+                                        </option>
+                                    @endif
+                                    @if (Auth::user()->isAdmin() || in_array($ticket->status, ['pending', 'in_progress']))
+                                        <option value="in_progress" {{ $ticket->status === 'in_progress' ? 'selected' : '' }}>
+                                            กำลังดำเนินการซ่อม (In Progress)
+                                        </option>
+                                    @endif
+                                    @if (Auth::user()->isAdmin() || $ticket->status === 'in_progress')
+                                        <option value="completed" {{ $ticket->status === 'completed' ? 'selected' : '' }}>
+                                            ซ่อมเสร็จสิ้น (Completed)
+                                        </option>
+                                    @endif
+                                    @if (Auth::user()->isAdmin())
+                                        <option value="cancelled" {{ $ticket->status === 'cancelled' ? 'selected' : '' }}>
+                                            ยกเลิกรายการ (Cancelled)
+                                        </option>
+                                    @endif
                                 </select>
                             </div>
+
+                            <div>
+                                <label for="repair_method"
+                                    class="flex items-center gap-2 text-xs font-semibold text-slate-300 mb-1.5 uppercase">
+                                    <i class="fa-solid fa-screwdriver-wrench text-blue-300"></i>
+                                    แนวทางการซ่อม
+                                </label>
+                                <select id="repair_method" name="repair_method"
+                                    class="w-full rounded-xl bg-slate-800 border-slate-700 text-white text-sm focus:border-blue-500 focus:ring-blue-500 py-2.5 px-3">
+                                    <option value="" @selected(old('repair_method', $ticket->repair_method) === null)>ยังไม่ระบุ</option>
+                                    <option value="in_house" @selected(old('repair_method', $ticket->repair_method) === 'in_house')>ซ่อมเองได้</option>
+                                    <option value="external" @selected(old('repair_method', $ticket->repair_method) === 'external')>ส่งซ่อมภายนอก</option>
+                                    <option value="unrepairable" @selected(old('repair_method', $ticket->repair_method) === 'unrepairable')>ซ่อมไม่ได้</option>
+                                </select>
+                            </div>
+
+                            <div data-external-repair-fields
+                                class="{{ old('repair_method', $ticket->repair_method) === 'external' ? '' : 'hidden' }}">
+                                <div>
+                                    <label for="external-repair-location"
+                                        class="flex items-center gap-2 text-xs font-semibold text-slate-300 mb-1.5 uppercase">
+                                        <i class="fa-solid fa-shop text-blue-300"></i>
+                                        ส่งซ่อมที่ไหน
+                                    </label>
+                                    <input id="external-repair-location" name="external_repair_location"
+                                        type="text" maxlength="255"
+                                        value="{{ old('external_repair_location', $ticket->external_repair_location) }}"
+                                        data-external-repair-location
+                                        @required(old('repair_method', $ticket->repair_method) === 'external')
+                                        placeholder="ชื่อร้าน บริษัท หรือสถานที่ส่งซ่อม"
+                                        class="w-full rounded-xl bg-slate-800 border-slate-700 text-white text-sm placeholder-slate-400 focus:border-blue-500 focus:ring-blue-500 py-2.5 px-3">
+                                    @error('external_repair_location')
+                                        <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div class="mt-4">
+                                    <label for="external-repair-returned-at"
+                                        class="flex items-center gap-2 text-xs font-semibold text-slate-300 mb-1.5 uppercase">
+                                        <i class="fa-solid fa-calendar-check text-blue-300"></i>
+                                        วันที่ได้รับของกลับมา
+                                    </label>
+                                    <input id="external-repair-returned-at" name="external_repair_returned_at"
+                                        type="date" max="{{ now()->toDateString() }}"
+                                        value="{{ old('external_repair_returned_at', $ticket->external_repair_returned_at) }}"
+                                        data-external-repair-returned-at
+                                        class="w-full rounded-xl bg-slate-800 border-slate-700 text-white text-sm focus:border-blue-500 focus:ring-blue-500 py-2.5 px-3">
+                                    <p class="mt-1 text-xs text-slate-400">
+                                        กรอกวันที่ได้รับของคืน และต้องบันทึกวันที่นี้ก่อนปิดงานส่งซ่อมภายนอก
+                                    </p>
+                                    @error('external_repair_returned_at')
+                                        <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            @if (Auth::user()->isAdmin())
+                                <div data-external-assignment
+                                    class="{{ $ticket->repair_method === 'external' ? '' : 'hidden' }}">
+                                    <label for="status-assigned-staff"
+                                        class="flex items-center gap-2 text-xs font-semibold text-slate-300 mb-1.5 uppercase">
+                                        <i class="fa-solid fa-user-check text-blue-300"></i>
+                                        เจ้าหน้าที่ภายในผู้ประสานงาน
+                                    </label>
+                                    <select id="status-assigned-staff" name="assigned_staff_id"
+                                        data-external-assignee-select
+                                        @required($ticket->repair_method === 'external')
+                                        class="w-full rounded-xl bg-slate-800 border-slate-700 text-white text-sm focus:border-blue-500 focus:ring-blue-500 py-2.5 px-3">
+                                        <option value="">-- เลือกเจ้าหน้าที่ผู้ประสานงาน --</option>
+                                        @foreach ($staffUsers as $staff)
+                                            <option value="{{ $staff->id }}"
+                                                @selected((string) old('assigned_staff_id', $ticket->assigned_staff_id) === (string) $staff->id)>
+                                                {{ $staff->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <p class="mt-1 text-xs text-slate-400">
+                                        เจ้าหน้าที่ภายในใช้ติดตามงาน ไม่ใช่ร้านหรือช่างภายนอก
+                                    </p>
+                                    @error('assigned_staff_id')
+                                        <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            @endif
 
                             <button type="submit"
                                 class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-sm shadow-md transition-colors flex items-center justify-center gap-2">
                                 <i class="fa-solid fa-save"></i>
-                                <span>บันทึกการอัปเดตสถานะ</span>
+                                <span>บันทึกการอัปเดต</span>
                             </button>
                         </form>
                     </div>
@@ -338,17 +455,48 @@
             const statusForm = document.querySelector('[data-status-update]');
 
             if (statusForm) {
+                const statusSelect = statusForm.querySelector('select[name="status"]');
+                const repairMethodSelect = statusForm.querySelector('select[name="repair_method"]');
+                const externalRepairFields = statusForm.querySelector('[data-external-repair-fields]');
+                const externalRepairLocation = statusForm.querySelector('[data-external-repair-location]');
+                const externalRepairReturnedAt = statusForm.querySelector('[data-external-repair-returned-at]');
+                const externalAssignment = statusForm.querySelector('[data-external-assignment]');
+                const externalAssigneeSelect = statusForm.querySelector('[data-external-assignee-select]');
+
+                function updateExternalRepairFields() {
+                    const isExternal = repairMethodSelect.value === 'external';
+                    externalRepairFields.classList.toggle('hidden', !isExternal);
+                    externalRepairLocation.required = isExternal;
+                    externalRepairReturnedAt.required = isExternal && statusSelect.value === 'completed';
+                    if (externalAssignment) {
+                        externalAssignment.classList.toggle('hidden', !isExternal);
+                        externalAssigneeSelect.required = isExternal;
+                    }
+                }
+
+                repairMethodSelect.addEventListener('change', function () {
+                    if (this.value === 'external') {
+                        statusSelect.value = 'in_progress';
+                    }
+                    updateExternalRepairFields();
+                });
+
+                statusSelect.addEventListener('change', updateExternalRepairFields);
+                updateExternalRepairFields();
+
                 statusForm.addEventListener('submit', function (event) {
                     event.preventDefault();
 
                     const form = this;
-                    const statusSelect = form.querySelector('select[name="status"]');
                     const selectedStatus = statusSelect.options[statusSelect.selectedIndex].text.trim();
+                    const confirmationText = repairMethodSelect.value === 'external'
+                        ? 'ส่งซ่อมภายนอกจะกำหนดสถานะเป็น "กำลังดำเนินการซ่อม" ต้องการบันทึกหรือไม่?'
+                        : `ต้องการเปลี่ยนสถานะเป็น "${selectedStatus}" หรือไม่?`;
 
                     Swal.fire({
                         icon: 'question',
-                        title: 'ยืนยันการเปลี่ยนสถานะ',
-                        text: `ต้องการเปลี่ยนสถานะเป็น "${selectedStatus}" หรือไม่?`,
+                        title: 'ยืนยันการอัปเดตงาน',
+                        text: confirmationText,
                         showCancelButton: true,
                         confirmButtonText: 'ยืนยันการเปลี่ยนสถานะ',
                         cancelButtonText: 'ยกเลิก',

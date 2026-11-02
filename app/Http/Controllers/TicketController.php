@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\LineService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class TicketController extends Controller
 {
@@ -26,13 +27,29 @@ class TicketController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Ticket::with(['reporter.department', 'category', 'images'])
+        $user = Auth::user();
+        $query = Ticket::with(['reporter.department', 'assignedStaff', 'category', 'images'])
             ->latest();
 
-        // If regular user, show only their own tickets, if admin show all
-        if (Auth::user()->role !== 'admin') {
-            $query->where('user_id', Auth::id());
+        if ($user->role === 'staff') {
+            $query->where(function ($ticketQuery) use ($user) {
+                $ticketQuery->where('assigned_staff_id', $user->id)
+                    ->orWhere(function ($unassignedQuery) {
+                        $unassignedQuery->whereNull('assigned_staff_id')
+                            ->where('status', 'pending');
+                    });
+            });
+        } elseif ($user->role !== 'admin') {
+            $query->where('user_id', $user->id);
         }
+
+        $stats = [
+            'total' => (clone $query)->count(),
+            'pending' => (clone $query)->where('status', 'pending')->count(),
+            'in_progress' => (clone $query)->where('status', 'in_progress')->count(),
+            'completed' => (clone $query)->where('status', 'completed')->count(),
+            'cancelled' => (clone $query)->where('status', 'cancelled')->count(),
+        ];
 
         // Filter by status if provided
         if ($request->filled('status')) {
@@ -44,21 +61,27 @@ class TicketController extends Controller
             $query->where('category_id', $request->category_id);
         }
 
-        // Search by ticket_no, symptom, asset_no, location
+        // Search by ticket details, category, or reporter name
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('ticket_no', 'like', "%{$search}%")
                     ->orWhere('asset_no', 'like', "%{$search}%")
                     ->orWhere('location', 'like', "%{$search}%")
-                    ->orWhere('symptom', 'like', "%{$search}%");
+                    ->orWhere('symptom', 'like', "%{$search}%")
+                    ->orWhereHas('reporter', function ($reporterQuery) use ($search) {
+                        $reporterQuery->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('category', function ($categoryQuery) use ($search) {
+                        $categoryQuery->where('category_name', 'like', "%{$search}%");
+                    });
             });
         }
 
         $tickets = $query->paginate(6)->withQueryString();
         $categories = Category::all();
 
-        return view('tickets.index', compact('tickets', 'categories'));
+        return view('tickets.index', compact('tickets', 'categories', 'stats'));
     }
 
     // สร้างการแจ้งซ่อมใหม่
@@ -118,16 +141,16 @@ class TicketController extends Controller
 
         // 1. บันทึก Notification ในระบบเดิม
         User::all()
-            ->filter(fn (User $user) => $user->isAdmin())
+            ->filter(fn (User $user) => $user->role === 'admin')
             ->each(fn (User $admin) => Notification::create([
                 'user_id' => $admin->id,
                 'ticket_id' => $ticket->id,
                 'message' => 'มีรายการแจ้งซ่อมใหม่ '.$ticket->ticket_no.' จาก '.Auth::user()->name,
             ]));
 
-        // 2. ส่ง LINE แจ้งเตือนแอดมิน/กลุ่มไลน์ไอที
+        // 2. ส่ง LINE แจ้งเตือนแอดมิน/กลุ่มไลน์ไอที เฉพาะเมื่อผู้แจ้งไม่ใช่แอดมิน
         $adminLineId = config('services.line.admin_id');
-        if (! empty($adminLineId)) {
+        if (Auth::user()->role !== 'admin' && ! empty($adminLineId)) {
             $ticket->load('reporter.department');
             $reporterName = $ticket->reporter->name ?? 'ไม่ระบุชื่อ';
             $reporterDepartment = $ticket->reporter->department->department_name ?? 'ไม่ระบุหน่วยงาน';
@@ -150,22 +173,95 @@ class TicketController extends Controller
 
     public function show($id)
     {
-        $ticket = Ticket::with(['reporter.department', 'category', 'images'])->findOrFail($id);
+        $ticket = Ticket::with(['reporter.department', 'assignedStaff', 'category', 'images'])->findOrFail($id);
+        $user = Auth::user();
 
-        if (Auth::user()->role !== 'admin' && $ticket->user_id !== Auth::id()) {
+        $canView = $user->role === 'admin'
+            || $ticket->user_id === $user->id
+            || ($user->role === 'staff' && (
+                $ticket->assigned_staff_id === $user->id
+                || ($ticket->assigned_staff_id === null && $ticket->status === 'pending')
+            ));
+
+        if (! $canView) {
             abort(403, 'คุณไม่มีสิทธิ์เข้าถึงรายการนี้');
         }
 
-        return view('tickets.show', compact('ticket'));
+        $staffUsers = $user->role === 'admin'
+            ? User::whereHas('roleRelation', fn ($query) => $query->where('name', 'staff'))->orderBy('name')->get()
+            : collect();
+
+        return view('tickets.show', compact('ticket', 'staffUsers'));
     }
 
     public function updateStatus(Request $request, $id)
     {
-        $request->validate([
-            'status' => 'required|in:pending,in_progress,completed,cancelled',
+        $ticket = Ticket::findOrFail($id);
+        $user = Auth::user();
+        $isAdmin = $user->role === 'admin';
+        $isAssignedStaff = $user->role === 'staff' && $ticket->assigned_staff_id === $user->id;
+
+        abort_unless($isAdmin || $isAssignedStaff, 403);
+
+        $allowedStatuses = $isAdmin
+            ? ['pending', 'in_progress', 'completed', 'cancelled']
+            : match ($ticket->status) {
+                'pending' => ['in_progress'],
+                'in_progress' => ['in_progress', 'completed'],
+                default => [$ticket->status],
+            };
+
+        if ($request->input('repair_method') === 'external' && $ticket->repair_method !== 'external') {
+            $request->merge(['status' => 'in_progress']);
+        }
+
+        $effectiveRepairMethod = $request->input('repair_method', $ticket->repair_method);
+        $rules = [
+            'status' => ['required', Rule::in($allowedStatuses)],
+            'repair_method' => ['nullable', Rule::in(['in_house', 'external', 'unrepairable'])],
+            'external_repair_location' => [
+                'nullable',
+                Rule::requiredIf($effectiveRepairMethod === 'external'),
+                'string',
+                'max:255',
+            ],
+            'external_repair_returned_at' => [
+                'nullable',
+                'date',
+                'before_or_equal:today',
+            ],
+        ];
+
+        if ($effectiveRepairMethod === 'external' && $request->input('status') === 'completed') {
+            $rules['external_repair_returned_at'][] = 'required';
+        }
+
+        if ($isAdmin) {
+            $rules['assigned_staff_id'] = [
+                'nullable',
+                Rule::requiredIf($effectiveRepairMethod === 'external'),
+                'exists:users,id',
+            ];
+        }
+
+        $request->validate($rules, [
+            'repair_method.in' => 'กรุณาเลือกแนวทางการซ่อมที่ถูกต้อง',
+            'external_repair_location.required' => 'กรุณาระบุร้านหรือสถานที่ที่ส่งซ่อม',
+            'external_repair_returned_at.required' => 'กรุณาระบุวันที่ได้รับของคืนก่อนปิดงานซ่อมภายนอก',
+            'external_repair_returned_at.before_or_equal' => 'วันที่ได้รับของคืนต้องไม่เป็นวันในอนาคต',
+            'assigned_staff_id.required' => 'กรุณาเลือกเจ้าหน้าที่ภายในเพื่อประสานงานส่งซ่อม',
+            'assigned_staff_id.exists' => 'เจ้าหน้าที่ที่เลือกไม่ถูกต้อง',
         ]);
 
-        $ticket = Ticket::findOrFail($id);
+        $newAssignedStaff = null;
+        if ($isAdmin && $request->filled('assigned_staff_id')) {
+            $newAssignedStaff = User::findOrFail($request->input('assigned_staff_id'));
+            if ($newAssignedStaff->role !== 'staff') {
+                return redirect()->back()
+                    ->withErrors(['assigned_staff_id' => 'เลือกได้เฉพาะบัญชีเจ้าหน้าที่'])
+                    ->withInput();
+            }
+        }
 
         if ($ticket->status === 'completed' && $request->status !== 'completed') {
             return redirect()->back()->with(
@@ -176,7 +272,31 @@ class TicketController extends Controller
 
         $oldStatus = $ticket->status;
         $ticket->status = $request->status;
+        if ($request->exists('repair_method') && ($isAdmin || in_array($ticket->status, ['pending', 'in_progress'], true))) {
+            $ticket->repair_method = $request->input('repair_method') ?: null;
+        }
+        if ($effectiveRepairMethod === 'external') {
+            $ticket->external_repair_location = $request->input(
+                'external_repair_location',
+                $ticket->external_repair_location
+            );
+            if ($request->exists('external_repair_returned_at')) {
+                $ticket->external_repair_returned_at = $request->input('external_repair_returned_at') ?: null;
+            }
+        }
+        $previousStaffId = $ticket->assigned_staff_id;
+        if ($newAssignedStaff) {
+            $ticket->assigned_staff_id = $newAssignedStaff->id;
+        }
         $ticket->save();
+
+        if ($newAssignedStaff && $previousStaffId !== $newAssignedStaff->id) {
+            Notification::create([
+                'user_id' => $newAssignedStaff->id,
+                'ticket_id' => $ticket->id,
+                'message' => 'คุณได้รับมอบหมายงานแจ้งซ่อม '.$ticket->ticket_no,
+            ]);
+        }
 
         if ($oldStatus !== $ticket->status) {
             $statusLabel = match ($ticket->status) {
@@ -219,6 +339,61 @@ class TicketController extends Controller
         return redirect()->back()->with('success', 'อัปเดตสถานะการแจ้งซ่อมสำเร็จ');
     }
 
+    public function assignStaff(Request $request, $id)
+    {
+        $request->validate([
+            'assigned_staff_id' => 'nullable|exists:users,id',
+        ]);
+
+        $ticket = Ticket::findOrFail($id);
+        $staffId = $request->input('assigned_staff_id');
+        $staff = $staffId ? User::findOrFail($staffId) : null;
+
+        if ($staff && $staff->role !== 'staff') {
+            return redirect()->back()
+                ->withErrors(['assigned_staff_id' => 'เลือกได้เฉพาะบัญชีที่มีบทบาท staff'])
+                ->withInput();
+        }
+
+        $previousStaffId = $ticket->assigned_staff_id;
+        $ticket->assigned_staff_id = $staff?->id;
+        $ticket->save();
+
+        if ($staff && $previousStaffId !== $staff->id) {
+            Notification::create([
+                'user_id' => $staff->id,
+                'ticket_id' => $ticket->id,
+                'message' => 'คุณได้รับมอบหมายงานแจ้งซ่อม '.$ticket->ticket_no,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'มอบหมายผู้ดำเนินการเรียบร้อยแล้ว');
+    }
+
+    public function claim(Request $request, $id)
+    {
+        $user = Auth::user();
+        abort_unless($user->role === 'staff', 403);
+
+        $claimed = Ticket::whereKey($id)
+            ->whereNull('assigned_staff_id')
+            ->where('status', 'pending')
+            ->update(['assigned_staff_id' => $user->id]);
+
+        if (! $claimed) {
+            return redirect()->back()->with('error', 'รายการนี้มีผู้รับผิดชอบแล้ว หรือไม่อยู่ในสถานะที่รับงานได้');
+        }
+
+        $ticket = Ticket::findOrFail($id);
+        Notification::create([
+            'user_id' => $ticket->user_id,
+            'ticket_id' => $ticket->id,
+            'message' => 'เจ้าหน้าที่ '.$user->name.' รับผิดชอบรายการแจ้งซ่อม '.$ticket->ticket_no,
+        ]);
+
+        return redirect()->back()->with('success', 'รับผิดชอบรายการแจ้งซ่อมเรียบร้อยแล้ว');
+    }
+
     public function cancel(Request $request, $id)
     {
         $ticket = Ticket::findOrFail($id);
@@ -231,17 +406,17 @@ class TicketController extends Controller
         $ticket->update(['status' => 'cancelled']);
 
         User::all()
-            ->filter(fn (User $user) => $user->isAdmin())
+            ->filter(fn (User $user) => $user->role === 'admin')
             ->each(fn (User $admin) => Notification::create([
                 'user_id' => $admin->id,
                 'ticket_id' => $ticket->id,
                 'message' => 'ผู้แจ้งยกเลิกรายการแจ้งซ่อม '.$ticket->ticket_no,
             ]));
 
-        // 📲 (เสริม) ส่ง LINE บอกแอดมินเมื่อผู้แจ้งกดยกเลิก
+        //ส่ง LINE บอกแอดมินเมื่อผู้แจ้งกดยกเลิก
         $adminLineId = config('services.line.admin_id');
         if (! empty($adminLineId)) {
-            $msgCancel = "❌ **ผู้แจ้งยกเลิกรายการแจ้งซ่อม**\n"
+            $msgCancel = "**ผู้แจ้งยกเลิกรายการแจ้งซ่อม**\n"
                        ."รหัสรายการ: {$ticket->ticket_no}\n"
                        .'ผู้แจ้ง: '.(Auth::user()->name ?? 'ไม่ระบุชื่อ');
 

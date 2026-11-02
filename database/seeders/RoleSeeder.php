@@ -16,6 +16,7 @@ class RoleSeeder extends Seeder
 
         DB::table('roles')->upsert([
             [
+                // ผู้ดูแลระบบ (Admin)
                 'id' => 1,
                 'name' => 'admin',
                 'guard_name' => 'web',
@@ -23,6 +24,7 @@ class RoleSeeder extends Seeder
                 'updated_at' => $now,
             ],
             [
+                // เจ้าหน้าที่ (Staff)
                 'id' => 2,
                 'name' => 'staff',
                 'guard_name' => 'web',
@@ -30,6 +32,7 @@ class RoleSeeder extends Seeder
                 'updated_at' => $now,
             ],
             [
+                // ผู้ใช้งานทั่วไป (User)
                 'id' => 3,
                 'name' => 'user',
                 'guard_name' => 'web',

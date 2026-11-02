@@ -1,3 +1,8 @@
+@php
+    $notificationItems = Auth::user()->notifications()->latest()->take(8)->get();
+    $unreadNotifications = Auth::user()->notifications()->where('is_read', false)->count();
+@endphp
+
 @if (Auth::user()->isAdmin())
     <aside class="admin-sidebar" :class="{ 'is-open': sidebarOpen }">
         <div class="admin-sidebar-content sidebar-scroll">
@@ -30,19 +35,18 @@
                 <a href="{{ route('tickets.index') }}"
                     class="navigation-link {{ request()->routeIs('tickets.index') || request()->routeIs('tickets.show') ? 'is-active' : 'is-inactive' }}">
                     <i class="fa-solid fa-list-check navigation-icon"></i>
-                    <span>{{ Auth::user()->isAdmin() ? 'รายการแจ้งซ่อมทั้งหมด' : 'รายการแจ้งซ่อมของฉัน' }}</span>
+                    <span>{{ Auth::user()->isAdmin() ? 'รายการแจ้งซ่อมทั้งหมด' : (Auth::user()->role === 'staff' ? 'งานซ่อมสำหรับเจ้าหน้าที่' : 'รายการแจ้งซ่อมของฉัน') }}</span>
                 </a>
-                <a href="{{ route('tickets.create') }}"
+                <button type="button" @click="ticketModalOpen = true; sidebarOpen = false" aria-haspopup="dialog"
                     class="navigation-link {{ request()->routeIs('tickets.create') ? 'is-active' : 'is-inactive' }}">
                     <i
                         class="fa-solid fa-plus-circle navigation-icon navigation-create-icon {{ request()->routeIs('tickets.create') ? '' : 'is-muted' }}"></i>
                     <span>แจ้งซ่อมใหม่</span>
-                </a>
+                </button>
                 <a href="{{ route('notifications.index') }}"
                     class="navigation-link {{ request()->routeIs('notifications.*') ? 'is-active' : 'is-inactive' }}">
                     <i class="fa-solid fa-bell navigation-icon"></i>
                     <span class="navigation-flex-fill">แจ้งเตือน</span>
-                    @php($unreadNotifications = Auth::user()->notifications()->where('is_read', false)->count())
                     @if ($unreadNotifications > 0)
                         <span
                             class="navigation-badge">{{ $unreadNotifications > 99 ? '99+' : $unreadNotifications }}</span>
@@ -127,21 +131,12 @@
                     <i class="fa-solid fa-list-check"></i>
                     <span class="public-navigation-label">รายการแจ้งซ่อมของฉัน</span>
                 </a>
-                <a href="{{ route('notifications.index') }}"
-                    class="public-navigation-link public-navigation-notification {{ request()->routeIs('notifications.*') ? 'is-active' : 'is-inactive' }}">
-                    <i class="fa-solid fa-bell"></i>
-                    <span class="public-navigation-label">แจ้งเตือน</span>
-                    @php($unreadNotifications = Auth::user()->notifications()->where('is_read', false)->count())
-                    @if ($unreadNotifications > 0)
-                        <span
-                            class="navigation-badge">{{ $unreadNotifications > 99 ? '99+' : $unreadNotifications }}</span>
-                    @endif
-                </a>
-                <a href="{{ route('tickets.create') }}"
+                <button type="button" @click="ticketModalOpen = true; userMenuOpen = false" aria-haspopup="dialog"
                     class="public-navigation-link mobile-navigation-link is-primary">
                     <i class="fa-solid fa-plus"></i>
                     <span class="public-navigation-label">แจ้งซ่อมครุภัณฑ์</span>
-                </a>
+                </button>
+                <x-notification-menu :notifications="$notificationItems" :unread-count="$unreadNotifications" variant="public" />
             </div>
 
             <div class="public-navigation-user">
@@ -192,12 +187,11 @@
                 <a href="{{ route('tickets.index') }}" class="mobile-navigation-link">
                     <i class="fa-solid fa-list-check navigation-icon"></i>รายการแจ้งซ่อมของฉัน
                 </a>
-                <a href="{{ route('notifications.index') }}" class="mobile-navigation-link">
-                    <i class="fa-solid fa-bell navigation-icon"></i>แจ้งเตือน
-                </a>
-                <a href="{{ route('tickets.create') }}" class="mobile-navigation-link is-primary">
+                <x-notification-menu :notifications="$notificationItems" :unread-count="$unreadNotifications" variant="mobile" />
+                <button type="button" @click="ticketModalOpen = true; userMenuOpen = false" aria-haspopup="dialog"
+                    class="mobile-navigation-link is-primary">
                     <i class="fa-solid fa-plus navigation-icon"></i>แจ้งซ่อมใหม่
-                </a>
+                </button>
                 <a href="{{ route('profile.edit') }}" class="mobile-navigation-link">
                     <i class="fa-solid fa-user navigation-icon"></i>โปรไฟล์
                 </a>

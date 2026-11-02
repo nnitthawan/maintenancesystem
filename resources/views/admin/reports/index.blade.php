@@ -121,9 +121,8 @@
         </div>
 
         <div class="data-card">
-            <div class="data-card-header">
-                <h2 class="section-title text-base font-bold text-slate-800"><i
-                        class="fa-solid fa-table-list text-blue-600"></i>รายการแจ้งซ่อม</h2>
+            <div class="data-cardList-header">
+                <h2 class="section-title text-base font-bold text-slate-800">รายการแจ้งซ่อม</h2>
                 <div class="data-card-actions"><span class="text-xs text-slate-500">{{ $tickets->total() }}
                         รายการ</span><a
                         href="{{ route('admin.users.export-tickets', request()->only(['status', 'category_id', 'department_id', 'from', 'to'])) }}"

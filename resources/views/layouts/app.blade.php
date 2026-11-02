@@ -25,8 +25,9 @@
 
     <link rel="stylesheet" href="{{ asset('css/lineseed.css') }}">
     <link rel="stylesheet" href="{{ asset('css/app-layout.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/navigation.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/navigation.css') }}?v={{ filemtime(public_path('css/navigation.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/pages.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/ticket.css') }}">
 
     <!-- Font Awesome 6 Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -64,7 +65,9 @@
 
 </head>
 
-<body class="font-sans antialiased bg-slate-100 text-slate-800 min-h-screen" x-data="{ sidebarOpen: false }">
+<body class="font-sans antialiased bg-slate-100 text-slate-800 min-h-screen"
+    x-data="{ sidebarOpen: false, ticketModalOpen: {{ old('_ticket_modal') ? 'true' : 'false' }}, ticketReviewOpen: false }"
+    @keydown.escape.window="ticketReviewOpen ? ticketReviewOpen = false : ticketModalOpen = false">
 
     @if(Auth::user()->isAdmin())
     <!-- Mobile admin navigation -->
@@ -101,8 +104,8 @@
             
             <!-- Page Header Slot (ถ้ามีการใช้งาน $header) -->
             @isset($header)
-                <div class="bg-white border-b border-slate-200 py-4 shrink-0 shadow-sm">
-                    <div class="w-full {{ Auth::user()->isAdmin() ? 'px-4 sm:px-6 lg:px-8' : 'mx-auto max-w-7xl px-4 sm:px-6 lg:px-8' }}">
+                <div class="py-4 shrink-0">
+                    <div class="public-navigation-header w-full {{ Auth::user()->isAdmin()}}">
                         {{ $header }}
                     </div>
                 </div>
@@ -164,8 +167,8 @@
             </script>
 
             <!-- Main Scrollable Content -->
-            <div class="{{ Auth::user()->isAdmin() ? 'min-h-0 flex-1 overflow-y-auto' : '' }} pb-16 pt-3 sm:pb-16 sm:pt-4 lg:pb-16 lg:pt-5">
-                <div class="w-full {{ Auth::user()->isAdmin() ? 'px-4 sm:px-6 lg:px-8' : 'mx-auto max-w-7xl px-4 sm:px-6 lg:px-8' }}">
+            <div class="{{ Auth::user()->isAdmin() ? 'min-h-0 flex-1 overflow-y-auto' : '' }} pb-16 sm:pb-16 lg:pb-16 ">
+                <div class="{{ Auth::user()->isAdmin() ? 'listMaintenanceSystems' : '' }}">
                     {{ $slot }}
                 </div>
             </div>
@@ -185,6 +188,290 @@
         @endif
 
     </div>
+
+    <div x-cloak x-show="ticketModalOpen" x-transition.opacity class="ticket-create-modal"
+        @ticket-review-open="ticketReviewOpen = true"
+        x-effect="document.body.classList.toggle('overflow-hidden', ticketModalOpen)"
+        role="presentation">
+        <section class="ticket-create-modal-panel" role="dialog" aria-modal="true"
+            aria-labelledby="ticketCreateModalTitle">
+            <header class="ticket-create-modal-header">
+                <div>
+                    <h2 id="ticketCreateModalTitle">แจ้งซ่อมครุภัณฑ์</h2>
+                    <p>กรอกรายละเอียดอุปกรณ์หรือสถานที่ที่ต้องการแจ้งซ่อม</p>
+                </div>
+                <button type="button" class="ticket-create-modal-close"
+                    @click="ticketModalOpen = false" aria-label="ปิดหน้าต่างแจ้งซ่อม">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </header>
+
+            <form action="{{ route('tickets.store') }}" method="POST" enctype="multipart/form-data"
+                class="ticket-create-modal-form">
+                @csrf
+                <input type="hidden" name="_ticket_modal" value="1">
+
+                <div class="ticket-create-modal-reporter">
+                    <i class="fa-solid fa-user-check"></i>
+                    <span>{{ Auth::user()->name }}</span>
+                    <span>{{ Auth::user()->department->department_name ?? 'ไม่มีสังกัด' }}</span>
+                </div>
+
+                @if ($errors->any() && old('_ticket_modal'))
+                    <div class="ticket-create-modal-errors" role="alert">
+                        <p>กรุณาตรวจสอบข้อมูลก่อนส่ง:</p>
+                        <ul>
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <div class="ticket-create-modal-fields">
+                    <div>
+                        <label for="modal_category_id">หมวดหมู่การซ่อม <span class="ticket-required">*</span></label>
+                        <select id="modal_category_id" name="category_id" required>
+                            <option value="">-- เลือกหมวดหมู่ปัญหา --</option>
+                            @foreach ($ticketCategories as $category)
+                                <option value="{{ $category->id }}"
+                                    @selected(old('category_id') == $category->id)>
+                                    {{ $category->category_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('category_id')
+                            @if (old('_ticket_modal'))
+                                <p class="ticket-create-modal-field-error">{{ $message }}</p>
+                            @endif
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="modal_asset_no">รหัสครุภัณฑ์ / เลขทะเบียนอุปกรณ์ <span>(ถ้ามี)</span></label>
+                        <input id="modal_asset_no" type="text" name="asset_no" maxlength="100"
+                            value="{{ old('asset_no') }}" placeholder="เช่น EQ-67-0012 หรือ IT-PC-05">
+                        @error('asset_no')
+                            @if (old('_ticket_modal'))
+                                <p class="ticket-create-modal-field-error">{{ $message }}</p>
+                            @endif
+                        @enderror
+                    </div>
+                    <div class="ticket-create-modal-field-full">
+                        <label for="modal_location">สถานที่ / อาคาร / ชั้น / ห้อง <span class="ticket-required">*</span></label>
+                        <input id="modal_location" type="text" name="location" required maxlength="255"
+                            value="{{ old('location') }}" placeholder="เช่น อาคารอำนวยการ ชั้น 2 ห้องประชุมใหญ่ 1">
+                        @error('location')
+                            @if (old('_ticket_modal'))
+                                <p class="ticket-create-modal-field-error">{{ $message }}</p>
+                            @endif
+                        @enderror
+                    </div>
+                    <div class="ticket-create-modal-field-full">
+                        <label for="modal_symptom">รายละเอียดอาการเสีย / ปัญหาที่พบ <span class="ticket-required">*</span></label>
+                        <textarea id="modal_symptom" name="symptom" rows="4" required
+                            placeholder="อธิบายอาการชำรุด หรือปัญหาที่เกิดขึ้นโดยละเอียด...">{{ old('symptom') }}</textarea>
+                        @error('symptom')
+                            @if (old('_ticket_modal'))
+                                <p class="ticket-create-modal-field-error">{{ $message }}</p>
+                            @endif
+                        @enderror
+                    </div>
+                    <div class="ticket-create-modal-field-full">
+                        <label for="modal_images">แนบรูปภาพประกอบ <span>(สูงสุด 5 รูป, ไม่เกิน 5MB ต่อรูป)</span></label>
+                        <input id="modal_images" type="file" name="images[]" multiple accept="image/*">
+                        <p id="modal-image-error" class="ticket-create-modal-field-error" role="alert" hidden></p>
+                        <div id="modal-image-preview" class="ticket-create-modal-image-preview" aria-live="polite"></div>
+                    </div>
+                </div>
+
+                <footer class="ticket-create-modal-actions">
+                    <button type="button" class="ticket-create-modal-cancel"
+                        @click="ticketModalOpen = false">ยกเลิก</button>
+                    <button type="submit" class="ticket-create-modal-submit">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        ตรวจสอบข้อมูล
+                    </button>
+                </footer>
+            </form>
+        </section>
+    </div>
+
+    <div x-cloak x-show="ticketReviewOpen" x-transition.opacity class="ticket-create-modal ticket-review-modal"
+        @click.self="ticketReviewOpen = false" role="presentation">
+        <section class="ticket-create-modal-panel ticket-review-panel" role="dialog" aria-modal="true"
+            aria-labelledby="ticketReviewTitle">
+            <header class="ticket-create-modal-header">
+                <div>
+                    <h2 id="ticketReviewTitle">ตรวจสอบข้อมูลก่อนส่ง</h2>
+                    <p>โปรดตรวจสอบรายละเอียดและรูปภาพก่อนยืนยันการแจ้งซ่อม</p>
+                </div>
+                <button type="button" class="ticket-create-modal-close"
+                    @click="ticketReviewOpen = false" aria-label="กลับไปแก้ไข">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </header>
+            <div class="ticket-create-modal-form">
+                <dl class="ticket-review-details">
+                    <div><dt>หมวดหมู่การซ่อม</dt><dd id="review-category">-</dd></div>
+                    <div><dt>รหัสครุภัณฑ์ / เลขทะเบียน</dt><dd id="review-asset">-</dd></div>
+                    <div class="ticket-review-detail-full"><dt>สถานที่ / อาคาร / ชั้น / ห้อง</dt><dd id="review-location">-</dd></div>
+                    <div class="ticket-review-detail-full"><dt>รายละเอียดอาการเสีย / ปัญหาที่พบ</dt><dd id="review-symptom">-</dd></div>
+                </dl>
+                <div class="ticket-review-images-wrap">
+                    <h3>รูปภาพประกอบ <span id="review-image-count"></span></h3>
+                    <div id="review-images" class="ticket-create-modal-image-preview"></div>
+                </div>
+                <footer class="ticket-create-modal-actions">
+                    <button type="button" class="ticket-create-modal-cancel"
+                        @click="ticketReviewOpen = false">กลับไปแก้ไข</button>
+                    <button type="button" id="ticket-review-confirm" class="ticket-create-modal-submit">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        ยืนยันและส่งแจ้งซ่อม
+                    </button>
+                </footer>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('.ticket-create-modal-form');
+            const imageInput = document.getElementById('modal_images');
+            const previewGrid = document.getElementById('modal-image-preview');
+            const imageError = document.getElementById('modal-image-error');
+            const reviewImages = document.getElementById('review-images');
+            const reviewConfirm = document.getElementById('ticket-review-confirm');
+            const reviewModal = document.querySelector('.ticket-review-modal');
+            const ticketModal = document.querySelector('.ticket-create-modal:not(.ticket-review-modal)');
+            let selectedImages = [];
+            let confirmed = false;
+
+            if (!form || !imageInput || !previewGrid || !reviewConfirm || !reviewModal || !ticketModal) {
+                return;
+            }
+
+            function setImageError(message) {
+                imageError.textContent = message;
+                imageError.hidden = !message;
+            }
+
+            function renderPreviews(files, container, allowRemove) {
+                container.replaceChildren();
+                if (files.length === 0) {
+                    const empty = document.createElement('p');
+                    empty.className = 'ticket-review-no-images';
+                    empty.textContent = 'ไม่ได้แนบรูปภาพ';
+                    container.appendChild(empty);
+                    return;
+                }
+
+                Array.from(files).forEach(function (file, index) {
+                    const item = document.createElement('div');
+                    item.className = 'ticket-create-modal-image-item';
+                    const image = document.createElement('img');
+                    image.alt = file.name;
+                    image.src = URL.createObjectURL(file);
+                    image.addEventListener('load', function () {
+                        URL.revokeObjectURL(image.src);
+                    }, { once: true });
+                    item.appendChild(image);
+
+                    const name = document.createElement('span');
+                    name.textContent = file.name;
+                    item.appendChild(name);
+
+                    if (allowRemove) {
+                        const remove = document.createElement('button');
+                        remove.type = 'button';
+                        remove.className = 'ticket-create-modal-image-remove';
+                        remove.setAttribute('aria-label', 'ลบรูปภาพ ' + file.name);
+                        remove.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                        remove.addEventListener('click', function () {
+                            const transfer = new DataTransfer();
+                            selectedImages = selectedImages.filter(function (selectedFile, selectedIndex) {
+                                if (selectedIndex !== index) {
+                                    return true;
+                                }
+                                return false;
+                            });
+                            selectedImages.forEach(function (selectedFile) {
+                                transfer.items.add(selectedFile);
+                            });
+                            imageInput.files = transfer.files;
+                            setImageError('');
+                            renderPreviews(imageInput.files, previewGrid, true);
+                        });
+                        item.appendChild(remove);
+                    }
+
+                    container.appendChild(item);
+                });
+            }
+
+            imageInput.addEventListener('change', function () {
+                const newFiles = Array.from(imageInput.files);
+                const validFiles = newFiles.filter(function (file) {
+                    return file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024;
+                });
+                const issues = [];
+                if (selectedImages.length + validFiles.length > 5) {
+                    issues.push('แนบรูปภาพได้สูงสุด 5 รูป รูปที่เกินจะไม่ถูกเพิ่ม');
+                }
+                if (validFiles.length !== newFiles.length) {
+                    issues.push('เลือกได้เฉพาะไฟล์รูปภาพที่มีขนาดไม่เกิน 5MB ต่อรูป');
+                }
+
+                const transfer = new DataTransfer();
+                selectedImages.concat(validFiles).slice(0, 5).forEach(function (file) {
+                    transfer.items.add(file);
+                });
+                selectedImages = Array.from(transfer.files);
+                imageInput.files = transfer.files;
+                setImageError(issues.join(' และ '));
+                renderPreviews(imageInput.files, previewGrid, true);
+            });
+
+            function fillReview() {
+                const category = document.getElementById('modal_category_id');
+                document.getElementById('review-category').textContent =
+                    category.options[category.selectedIndex]?.text?.trim() || '-';
+                document.getElementById('review-asset').textContent =
+                    document.getElementById('modal_asset_no').value.trim() || '-';
+                document.getElementById('review-location').textContent =
+                    document.getElementById('modal_location').value.trim() || '-';
+                document.getElementById('review-symptom').textContent =
+                    document.getElementById('modal_symptom').value.trim() || '-';
+                document.getElementById('review-image-count').textContent =
+                    '(' + imageInput.files.length + ' รูป)';
+                renderPreviews(imageInput.files, reviewImages, false);
+            }
+
+            form.addEventListener('submit', function (event) {
+                if (confirmed) {
+                    return;
+                }
+
+                event.preventDefault();
+                if (!form.reportValidity()) {
+                    return;
+                }
+                if (imageError.textContent) {
+                    imageInput.focus();
+                    return;
+                }
+
+                fillReview();
+                ticketModal.dispatchEvent(new CustomEvent('ticket-review-open', { bubbles: true }));
+            });
+
+            reviewConfirm.addEventListener('click', function () {
+                confirmed = true;
+                reviewConfirm.disabled = true;
+                reviewConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังส่งข้อมูล...';
+                form.requestSubmit();
+            });
+        });
+    </script>
 
 </body>
 </html>

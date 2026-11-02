@@ -51,9 +51,7 @@ class AdminUserController extends Controller
      */
     public function create()
     {
-        $roles = Role::all();
-        $departments = Department::all();
-        return view('admin.users.create', compact('roles', 'departments'));
+        return redirect()->route('admin.users.index', ['create' => 1]);
     }
 
     /**
@@ -70,8 +68,13 @@ class AdminUserController extends Controller
             'password'      => 'required|string|min:6|confirmed',
         ], [
             'name.required'          => 'กรุณากรอกชื่อ-นามสกุล',
+            'name.max'               => 'ชื่อ-นามสกุลต้องไม่เกิน 255 ตัวอักษร',
             'username.required'      => 'กรุณากรอกชื่อผู้ใช้',
+            'username.max'           => 'ชื่อผู้ใช้ต้องไม่เกิน 100 ตัวอักษร',
             'username.unique'        => 'ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว',
+            'phone.max'              => 'เบอร์โทรศัพท์ต้องไม่เกิน 20 ตัวอักษร',
+            'department_id.exists'   => 'แผนกที่เลือกไม่ถูกต้อง',
+            'role_id.exists'         => 'บทบาทที่เลือกไม่ถูกต้อง',
             'password.required'      => 'กรุณากรอกรหัสผ่าน',
             'password.min'           => 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
             'password.confirmed'     => 'รหัสผ่านยืนยันไม่ตรงกัน',

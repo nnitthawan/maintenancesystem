@@ -2,19 +2,18 @@
     <x-slot name="header">
         <div class="page-header">
             <div>
-            <h2 class="page-title">
-                    {{-- <i class="fa-solid fa-bell text-blue-600"></i> --}}
+                <h2 class="page-title">
                     <span>แจ้งเตือน</span>
                 </h2>
                 <p class="page-description">
-                    @if(Auth::user()->role === 'admin')
+                    @if (Auth::user()->role === 'admin')
                         รายการแจ้งเตือนทั้งหมดจากทุกแผนกในระบบ (โหมดผู้ดูแลระบบ)
                     @else
                         รายการแจ้งเตือนทั้งหมดของคุณ
                     @endif
                 </p>
             </div>
-            @if($notifications->where('is_read', false)->count() > 0)
+            @if ($notifications->where('is_read', false)->count() > 0)
                 <form method="POST" action="{{ route('notifications.read-all') }}">
                     @csrf
                     @method('PATCH')
@@ -30,19 +29,17 @@
         @forelse($notifications as $notification)
             <div class="notification-item {{ $notification->is_read ? '' : 'is-unread' }}">
                 <div class="notification-icon">
-                        <i class="fa-solid fa-bell"></i>
+                    <i class="fa-solid fa-bell"></i>
                 </div>
                 <div class="notification-content">
-                    @php
-                        $notificationMessage = str_replace(
-                            ['เปลี่ยนสถานะเป็น pending', 'เปลี่ยนสถานะเป็น in_progress', 'เปลี่ยนสถานะเป็น completed', 'เปลี่ยนสถานะเป็น cancelled'],
-                            ['เปลี่ยนสถานะเป็น รอรับเรื่อง', 'เปลี่ยนสถานะเป็น กำลังดำเนินการ', 'เปลี่ยนสถานะเป็น เสร็จสิ้น', 'เปลี่ยนสถานะเป็น ยกเลิก'],
-                            $notification->message,
-                        );
-                    @endphp
-                    <p class="notification-message">{{ $notificationMessage }}</p>
-                    <p class="notification-time">{{ $notification->created_at->diffForHumans() }}</p>
+                    <p class="notification-message">{{ $notification->display_message }}</p>
+                    <p class="notification-time">
+                        {{ $notification->created_at->lt(now()->subDay())
+                            ? $notification->created_at->format('d/m/Y H:i น.')
+                            : $notification->created_at->diffForHumans() }}
+                    </p>
                 </div>
+                <div class="notification-actions">
                     <form method="POST" action="{{ route('notifications.read', $notification) }}">
                         @csrf
                         @method('PATCH')
@@ -50,6 +47,16 @@
                             ดูรายการ
                         </button>
                     </form>
+                    <form method="POST" action="{{ route('notifications.destroy', $notification) }}"
+                        onsubmit="return confirm('ต้องการลบการแจ้งเตือนนี้หรือไม่?')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="notification-delete-button">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span>ลบ</span>
+                        </button>
+                    </form>
+                </div>
             </div>
         @empty
             <div class="data-card empty-state">
